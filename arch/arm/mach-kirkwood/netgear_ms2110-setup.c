@@ -240,13 +240,20 @@ static void __init netgear_ms2110_init(void)
         else
                 pr_err("netgear_ms2110: failed to configure power-off GPIO\n");
 
-	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE_LED,"power-light") == 0 &&
-	    gpio_direction_output(NETGEAR_MS2110_GPIO_BLUE_LED, 0) == 0) {
-	        gpio_set_value(NETGEAR_MS2110_GPIO_BLUE_LED,0);
-	        orion_gpio_set_blink(NETGEAR_MS2110_GPIO_BLUE_LED,0);
+	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE1_LED,"power-light") == 0 &&
+	    gpio_direction_output(NETGEAR_MS2110_GPIO_BLUE1_LED, 0) == 0) {
+	        gpio_set_value(NETGEAR_MS2110_GPIO_BLUE1_LED,0);
+	        orion_gpio_set_blink(NETGEAR_MS2110_GPIO_BLUE1_LED,0);
             } else
 	        pr_err("netgear_ms2110: failed to configure blue LED\n");
-	gpio_free(NETGEAR_MS2110_GPIO_BLUE_LED);
+	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE2_LED,"power-light") == 0 &&
+	    gpio_direction_output(NETGEAR_MS2110_GPIO_BLUE2_LED, 0) == 0) {
+	        gpio_set_value(NETGEAR_MS2110_GPIO_BLUE2_LED,0);
+	        orion_gpio_set_blink(NETGEAR_MS2110_GPIO_BLUE2_LED,0);
+            } else
+	        pr_err("netgear_ms2110: failed to configure blue LED\n");
+	gpio_free(NETGEAR_MS2110_GPIO_BLUE1_LED);
+	gpio_free(NETGEAR_MS2110_GPIO_BLUE2_LED);
         platform_device_register(&netgear_ms2110_gpio_leds);
 
 }
