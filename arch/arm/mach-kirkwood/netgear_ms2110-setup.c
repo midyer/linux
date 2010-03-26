@@ -119,8 +119,8 @@ static unsigned int netgear_ms2110_mpp_config[] __initdata = {
 	MPP28_GPIO,
 	MPP29_GPIO,
 	MPP30_GPIO, 
-	MPP31_GPIO,  /* blue led for power indicator */
-	MPP32_GPIO,
+	MPP31_GPIO,  /* blue led for power indicator 1 */
+	MPP32_GPIO,  /* blue led for power indicator 2 */
 	MPP33_GE1_13,
 	MPP34_SATA1_ACTn, /* positively retarded, unused, and nonstandard */
 	MPP35_GPIO,
@@ -148,7 +148,8 @@ static void netgear_ms2110_power_off(void)
         gpio_set_value(NETGEAR_MS2110_GPIO_POWER_OFF, 1);
 }
 
-#define NETGEAR_MS2110_GPIO_BLUE_LED     31
+#define NETGEAR_MS2110_GPIO_BLUE1_LED     31
+#define NETGEAR_MS2110_GPIO_BLUE2_LED     32
 #define NETGEAR_MS2110_GPIO_RED1_LED     23
 #define NETGEAR_MS2110_GPIO_RED2_LED     22
 
@@ -167,10 +168,17 @@ int gpio_blink_set(unsigned gpio, unsigned long *delay_on, unsigned long *delay_
 
 static struct gpio_led netgear_ms2110_gpio_led_pins[] = {
         {
-                .name   = "blue",
-                .gpio   = NETGEAR_MS2110_GPIO_BLUE_LED,
+                .name   = "blue1",
+                .gpio   = NETGEAR_MS2110_GPIO_BLUE1_LED,
                 .active_low     = 1,
 		.default_trigger = "heartbeat",
+		.default_state = LEDS_GPIO_DEFSTATE_KEEP,
+        },
+        {
+                .name   = "blue2",
+                .gpio   = NETGEAR_MS2110_GPIO_BLUE2_LED,
+                .active_low     = 1,
+		.default_trigger = "default-on",
 		.default_state = LEDS_GPIO_DEFSTATE_KEEP,
         },
         {
