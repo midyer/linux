@@ -88,26 +88,26 @@ static struct platform_device netgear_ms2110_gpio_buttons = {
 };
 
 static unsigned int netgear_ms2110_mpp_config[] __initdata = {
-	MPP0_NF_IO2,
-	MPP1_NF_IO3,
-	MPP2_NF_IO4,
-	MPP3_NF_IO5,
-	MPP4_NF_IO6,
-	MPP5_NF_IO7,
-	MPP6_SYSRST_OUTn,
-	MPP7_SPI_SCn,
-	MPP8_TW_SDA,
-	MPP9_TW_SCK,
-	MPP10_UART0_TXD,
-	MPP11_UART0_RXD,
+	MPP0_NF_IO2,  /* nand controller */
+	MPP1_NF_IO3,  /* nand controller */
+	MPP2_NF_IO4,  /* nand controller */
+	MPP3_NF_IO5,  /* nand controller */
+	MPP4_NF_IO6,  /* nand controller */
+	MPP5_NF_IO7,  /* nand controller */
+	MPP6_SYSRST_OUTn, /* system reset out */
+	MPP7_SPI_SCn, 
+	MPP8_TW_SDA,  /* TWSI data */
+	MPP9_TW_SCK,  /* TWSI clock */
+	MPP10_UART0_TXD, /* ttyS0 tx */
+	MPP11_UART0_RXD, /* ttys0 rx */
 	MPP12_SD_CLK,
 	MPP13_SD_CMD,
 	MPP14_SD_D0,
 	MPP15_SD_D1,
 	MPP16_SD_D2,
 	MPP17_SD_D3,
-	MPP18_NF_IO0,
-	MPP19_NF_IO1,
+	MPP18_NF_IO0,  /* nand controller */
+	MPP19_NF_IO1,  /* nand controller */
 	MPP20_SATA1_ACTn, /* green led for drive 2 */
 	MPP21_SATA0_ACTn, /* green led for drive 1 */
 	MPP22_GPIO,   /* red led for drive 2 */
@@ -124,20 +124,20 @@ static unsigned int netgear_ms2110_mpp_config[] __initdata = {
 	MPP33_GE1_13,
 	MPP34_SATA1_ACTn, /* positively retarded, unused, and nonstandard */
 	MPP35_GPIO,
-	MPP36_GPIO,  /* power button */
-	MPP37_GPIO,  /* reset button */
+	MPP36_GPIO,  /* power button input */
+	MPP37_GPIO,  /* reset button input */
 	MPP38_GPIO,
 	MPP39_GPIO,
 	MPP40_GPIO,  /* low output powers off board */
-	MPP41_GPIO,
+	MPP41_GPIO,  /* input from fan tachometer -- kind of pointless */
 	MPP42_GPIO,
-	MPP43_GPIO,
-	MPP44_GPIO,
-	MPP45_TDM_PCLK,
-	MPP46_TDM_FS,
-	MPP47_TDM_DRX,
-	MPP48_TDM_DTX,
-	MPP49_GPIO,
+	MPP43_GPIO,  /* Green 1000M phy led enable */
+	MPP44_GPIO,  /* Yellow 10M/100M phy led enable */
+	MPP45_TDM_PCLK, /* tp11 on the board */
+	MPP46_TDM_FS,   /* tp12 on the board */
+	MPP47_TDM_DRX,  /* tp13 on the board */
+	MPP48_TDM_DTX,  /* tp14 on the board */
+	MPP49_GPIO,     /* tp15 on the board */
 	0
 };
 
@@ -240,18 +240,18 @@ static void __init netgear_ms2110_init(void)
         else
                 pr_err("netgear_ms2110: failed to configure power-off GPIO\n");
 
-	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE1_LED,"power-light") == 0 &&
+	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE1_LED,"power-light1") == 0 &&
 	    gpio_direction_output(NETGEAR_MS2110_GPIO_BLUE1_LED, 0) == 0) {
 	        gpio_set_value(NETGEAR_MS2110_GPIO_BLUE1_LED,0);
 	        orion_gpio_set_blink(NETGEAR_MS2110_GPIO_BLUE1_LED,0);
             } else
-	        pr_err("netgear_ms2110: failed to configure blue LED\n");
-	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE2_LED,"power-light") == 0 &&
+	        pr_err("netgear_ms2110: failed to configure blue LED1\n");
+	if (gpio_request(NETGEAR_MS2110_GPIO_BLUE2_LED,"power-light2") == 0 &&
 	    gpio_direction_output(NETGEAR_MS2110_GPIO_BLUE2_LED, 0) == 0) {
 	        gpio_set_value(NETGEAR_MS2110_GPIO_BLUE2_LED,0);
 	        orion_gpio_set_blink(NETGEAR_MS2110_GPIO_BLUE2_LED,0);
             } else
-	        pr_err("netgear_ms2110: failed to configure blue LED\n");
+	        pr_err("netgear_ms2110: failed to configure blue LED2\n");
 	gpio_free(NETGEAR_MS2110_GPIO_BLUE1_LED);
 	gpio_free(NETGEAR_MS2110_GPIO_BLUE2_LED);
         platform_device_register(&netgear_ms2110_gpio_leds);
