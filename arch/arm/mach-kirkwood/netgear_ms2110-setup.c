@@ -200,7 +200,7 @@ static struct gpio_led netgear_ms2110_gpio_led_pins[] = {
 static struct gpio_led_platform_data netgear_ms2110_gpio_leds_data = {
         .num_leds       = ARRAY_SIZE(netgear_ms2110_gpio_led_pins),
         .leds           = netgear_ms2110_gpio_led_pins,
-	.gpio_blink_set = &gpio_blink_set,
+		.gpio_blink_set = &gpio_blink_set,
 };
 
 
@@ -261,19 +261,19 @@ static void __init netgear_ms2110_init(void)
 static int __init netgear_ms2110_pci_init(void)
 {
 	if (machine_is_netgear_ms2110())
-		kirkwood_pcie_init();
+		kirkwood_pcie_init(KW_PCIE0);
 
 	return 0;
  }
 subsys_initcall(netgear_ms2110_pci_init);
 
-
+#ifdef CONFIG_MACH_NETGEAR_MS2110
 MACHINE_START(NETGEAR_MS2110, "Netgear MS2110")
-	.phys_io	= KIRKWOOD_REGS_PHYS_BASE,
-	.io_pg_offst	= ((KIRKWOOD_REGS_VIRT_BASE) >> 18) & 0xfffc,
 	.boot_params	= 0x00000100,
 	.init_machine	= netgear_ms2110_init,
 	.map_io		= kirkwood_map_io,
+	.init_early	= kirkwood_init_early,
 	.init_irq	= kirkwood_init_irq,
 	.timer		= &kirkwood_timer,
 MACHINE_END
+#endif
