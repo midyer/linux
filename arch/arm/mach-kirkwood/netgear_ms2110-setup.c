@@ -96,8 +96,8 @@ static unsigned int netgear_ms2110_mpp_config[] __initdata = {
 	MPP5_NF_IO7,  /* nand controller */
 	MPP6_SYSRST_OUTn, /* system reset out */
 	MPP7_SPI_SCn, 
-	MPP8_TW_SDA,  /* TWSI data */
-	MPP9_TW_SCK,  /* TWSI clock */
+	MPP8_TW0_SDA,  /* TWSI data */
+	MPP9_TW0_SCK,  /* TWSI clock */
 	MPP10_UART0_TXD, /* ttyS0 tx */
 	MPP11_UART0_RXD, /* ttys0 rx */
 	MPP12_SD_CLK,
@@ -112,16 +112,16 @@ static unsigned int netgear_ms2110_mpp_config[] __initdata = {
 	MPP21_SATA0_ACTn, /* green led for drive 1 */
 	MPP22_GPIO,   /* red led for drive 2 */
 	MPP23_GPIO,   /* red led for drive 1 */
-	MPP24_GE1_4,
-	MPP25_GE1_5,
-	MPP26_GE1_6,
-	MPP27_GE1_7,
+	MPP24_GE1_RXD0,
+	MPP25_GE1_RXD1,
+	MPP26_GE1_RXD2,
+	MPP27_GE1_RXD3,
 	MPP28_GPIO,
 	MPP29_GPIO,
 	MPP30_GPIO, 
 	MPP31_GPIO,  /* blue led for power indicator 1 */
 	MPP32_GPIO,  /* blue led for power indicator 2 */
-	MPP33_GE1_13,
+	MPP33_GE1_TXCTL,
 	MPP34_SATA1_ACTn, /* positively retarded, unused, and nonstandard */
 	MPP35_GPIO,
 	MPP36_GPIO,  /* power button input */
