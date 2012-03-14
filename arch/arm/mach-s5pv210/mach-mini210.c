@@ -107,12 +107,12 @@ static struct mtd_partition mini210_nand_part[] = {
 		.size	= SZ_128K,
 		.offset	= SZ_128K + SZ_256K,
 	},
-	[1] = {
+	[2] = {
 		.name	= "kernel",
 		.size	= SZ_512K,
 		.offset	= SZ_4M,
 	},
-	[2] = {
+	[3] = {
 		.name	= "rootfs",
 		.size	= MTDPART_SIZ_FULL,
 		.offset	= SZ_4M + SZ_512K,
@@ -138,7 +138,8 @@ static struct s3c2410_platform_nand mini210_nand_info = {
 
 static struct platform_device *mini210_devices[] __initdata = {
 	&s3c_device_hsmmc0,
-	&s3c_device_hsmmc1
+	&s3c_device_hsmmc1,
+	&s3c_device_nand
 };
 
 static void __init mini210_map_io(void)
@@ -154,8 +155,7 @@ static void __init mini210_machine_init(void)
 {
 	s3c_pm_init();
 
-	/*s5pv210_default_sdhci0();
-	s5pv210_default_sdhci1();*/
+	s3c_nand_set_platdata(&mini210_nand_info);
 
 	platform_add_devices(mini210_devices, ARRAY_SIZE(mini210_devices));
 }
