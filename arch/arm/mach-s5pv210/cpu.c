@@ -43,6 +43,7 @@
 #include <plat/sdhci.h>
 #include <plat/reset.h>
 #include <plat/tv-core.h>
+#include <plat/nand.h>
 
 /* Initial IO mappings */
 
@@ -146,6 +147,9 @@ void __init s5pv210_map_io(void)
 
 	/* Use s5pv210-keypad instead of samsung-keypad */
 	samsung_keypad_setname("s5pv210-keypad");
+
+	/* Select the right nand driver */
+	s3c_device_nand.name = "s5pv210-nand";
 
 	/* setup TV devices */
 	s5p_hdmi_setname("s5pv210-hdmi");
