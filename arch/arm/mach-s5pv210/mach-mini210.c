@@ -51,6 +51,10 @@
 #include <plat/nand.h>
 #include <plat/sdhci.h>
 
+#ifdef CONFIG_DM9000
+#include <linux/dm9000.h>
+#endif
+
 /* Following are default values for UCON, ULCON and UFCON UART registers */
 #define MINI210_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
 				 S3C2410_UCON_RXILEVEL |	\
@@ -131,15 +135,104 @@ static struct s3c2410_nand_set mini210_nand_sets[] = {
 static struct s3c2410_platform_nand mini210_nand_info = {
 	.tacls		= 25,
 	.twrph0		= 55,
-	.twrph1		= 40,
+	.twrph1		= 55,
 	.nr_sets	= ARRAY_SIZE(mini210_nand_sets),
 	.sets		= mini210_nand_sets,
 };
 
+#ifdef CONFIG_DM9000
+
+#define S5PV210_PA_DM9000_A     (0x88001000)
+#define S5PV210_PA_DM9000_F     (S5PV210_PA_DM9000_A + 0x300C)
+
+static struct resource dm9000_resources[] = {
+	[0] = {
+		.start	= S5PV210_PA_DM9000_A,
+		.end	= S5PV210_PA_DM9000_A + SZ_1K*4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= S5PV210_PA_DM9000_F,
+		.end	= S5PV210_PA_DM9000_F + SZ_1K*4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[2] = {
+		.start	= IRQ_EINT(7),
+		.end	= IRQ_EINT(7),
+		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
+	},
+};
+
+static struct dm9000_plat_data dm9000_platdata = {
+	.flags		= DM9000_PLATF_16BITONLY | DM9000_PLATF_NO_EEPROM,
+	.dev_addr	= { 0x08, 0x90, 0x00, 0xa0, 0x02, 0x10 },
+};
+
+struct platform_device mini210_device_dm9000 = {
+	.name		= "dm9000",
+	.id			= -1,
+	.num_resources	= ARRAY_SIZE(dm9000_resources),
+	.resource	= dm9000_resources,
+	.dev		= {
+		.platform_data	= &dm9000_platdata,
+	},
+};
+
+static int __init dm9000_set_mac(char *str) {
+	unsigned char addr[6];
+	unsigned int val;
+	int idx = 0;
+	char *p = str, *end;
+
+	while (*p && idx < 6) {
+		val = simple_strtoul(p, &end, 16);
+		if (end <= p) {
+			/* convert failed */
+			break;
+		} else {
+			addr[idx++] = val;
+			p = end;
+			if (*p == ':'|| *p == '-') {
+				p++;
+			} else {
+				break;
+			}
+		}
+	}
+
+	return 1;
+}
+
+__setup("ethmac=", dm9000_set_mac);
+
+static void __init mini210_dm9000_set(void)
+{
+	unsigned int tmp;
+
+	tmp = ((0<<28)|(0<<24)|(5<<16)|(0<<12)|(0<<8)|(0<<4)|(0<<0));
+	__raw_writel(tmp, (S5P_SROM_BW+0x08));
+
+	tmp = __raw_readl(S5P_SROM_BW);
+	tmp &= ~(0xf << 4);
+	tmp |= (0x1 << 4); /* dm9000 16bit */
+	__raw_writel(tmp, S5P_SROM_BW);
+
+    gpio_request(S5PV210_MP01(1), "nCS1");
+    s3c_gpio_cfgpin(S5PV210_MP01(1), S3C_GPIO_SFN(2));
+    gpio_free(S5PV210_MP01(1));
+}
+
+#endif
+
+
 static struct platform_device *mini210_devices[] __initdata = {
 	&s3c_device_hsmmc0,
 	&s3c_device_hsmmc1,
-	&s3c_device_nand
+	&s3c_device_nand,
+
+#ifdef CONFIG_DM9000
+	&mini210_device_dm9000,
+#endif
 };
 
 static void __init mini210_map_io(void)
@@ -154,6 +247,8 @@ static void __init mini210_map_io(void)
 static void __init mini210_machine_init(void)
 {
 	s3c_pm_init();
+
+	mini210_dm9000_set();
 
 	s3c_nand_set_platdata(&mini210_nand_info);
 
