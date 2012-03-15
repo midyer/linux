@@ -1042,16 +1042,19 @@ static void s3c2410_nand_init_chip(struct s3c2410_nand_info *info,
 		chip->cmd_ctrl  = s3c2440_nand_hwcontrol;
 		chip->dev_ready = s3c2412_nand_devready;
 
+		if (readl(regs + S3C2410_NFCONF) & S3C2412_NFCONF_NANDBOOT)
+			dev_info(info->device, "System booted from NAND\n");
+
+		break;
+
 	case TYPE_S5PV210:
 		chip->IO_ADDR_W = regs + S5PV210_NFDATA;
 		info->sel_reg   = regs + S5PV210_NFCONT;
 		info->sel_bit	= S5PV210_NFCONT_nFCE0;
 		chip->cmd_ctrl  = s5pv210_nand_hwcontrol;
 		chip->dev_ready = s5pv210_nand_devready;
-		
-
-		if (readl(regs + S3C2410_NFCONF) & S3C2412_NFCONF_NANDBOOT)
-			dev_info(info->device, "System booted from NAND\n");
+		chip->read_buf  = s3c2440_nand_read_buf;
+		chip->write_buf	= s3c2440_nand_write_buf;
 
 		break;
   	}
