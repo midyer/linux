@@ -16,6 +16,7 @@
 #include <linux/sysdev.h>
 #include <linux/dm9000.h>
 #include <linux/fb.h>
+#include <linux/leds.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
 #include <linux/pwm_backlight.h>
@@ -223,7 +224,46 @@ static void __init mini210_dm9000_set(void)
 }
 
 #endif
+static struct gpio_led gpio_leds[] = {
+	{
+		.name				= "led1",
+		.gpio				= S5PV210_GPJ2(0),
+		.active_low			= 1,
+		.default_trigger	= "heartbeat",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name				= "led2",
+		.gpio				= S5PV210_GPJ2(1),
+		.active_low			= 1,
+		.default_trigger	= "nand-disk",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name				= "led3",
+		.gpio				= S5PV210_GPJ2(2),
+		.active_low			= 1,
+		.default_trigger	= "mmc0",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name				= "led4",
+		.gpio				= S5PV210_GPJ2(3),
+		.active_low			= 1,
+		.default_trigger	= "mmc1",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},
+};
 
+static struct gpio_led_platform_data gpio_led_info = {
+	.leds		= gpio_leds,
+	.num_leds	= ARRAY_SIZE(gpio_leds),
+};
+
+static struct platform_device mini210_leds = {
+	.name	= "leds-gpio",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &gpio_led_info,
+	}
+};
 
 static struct platform_device *mini210_devices[] __initdata = {
 	&s3c_device_hsmmc0,
@@ -236,6 +276,8 @@ static struct platform_device *mini210_devices[] __initdata = {
 
 	&s3c_device_rtc,
 	&s3c_device_wdt,
+	
+	&mini210_leds,
 };
 
 static void __init mini210_map_io(void)
