@@ -357,7 +357,7 @@ static int s3c2410_nand_inithw(struct s3c2410_nand_info *info)
 		writel(S3C2440_NFCONT_ENABLE, info->regs + S3C2440_NFCONT);
 
 	case TYPE_S5PV210:
-		writel(S5PV210_NFCONT_MODE, info->regs + S5PV210_NFCONT);
+		writel(readl(info->regs + S5PV210_NFCONT) | S5PV210_NFCONT_MODE, info->regs + S5PV210_NFCONT);
 	}
 
 	return 0;
@@ -584,11 +584,11 @@ static int s5pv210_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 	}
 
 	if (errors > 8) {
-		dev_dbg(info->device, "Uncorrectable ECC errors\n");
+		dev_warn(info->device, "Uncorrectable ECC errors\n");
 		return -1;
 	}
 
-	dev_dbg(info->device, "%d ECC correctable errors!\n", errors);
+	dev_info(info->device, "%d ECC correctable errors!\n", errors);
 
 	for (i = 0; i < 16; i++) {
 		if ( ((nfecsecstat >> (8 + i)) & 0x01) != 0) {
@@ -596,6 +596,7 @@ static int s5pv210_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 			int loc = (readl(info->regs + S5PV210_NFECCERL0 + (i / 2)) >> ((i % 2) * 16)) & 0x3FF;
 			int pat = (readl(info->regs + S5PV210_NFECCERP0 + (i / 4)) >> ((i % 4) * 8)) & 0xFF;
 			dat[loc] ^= pat;
+			dev_dbg(info->device, "Correcting byte %d pattern 0x%02x\n", loc, pat);
 		}
 	}
 
@@ -711,15 +712,14 @@ static int s3c2440_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 static void s3c_nand_wait_enc(struct s3c2410_nand_info *info)
 {
 	u32 timeo = HZ * 20 / 1000;
-	u32 time_start;	
 	int timeout = 1;
 
-	time_start = jiffies;
+	timeo += jiffies;
 
 	/* wait until command is processed or timeout occures */
-	while (jiffies - time_start < timeo) {
+	while (jiffies < timeo) {
 		if (readl(info->regs + S5PV210_NFECCSTAT) & S5PV210_NFECCSTAT_ENCDONE) {
-			/* printf("Encode complete\n"); */
+			dev_dbg(info->device, "Encode complete\n");
 			timeout = 0;
 			break;
 		}
@@ -736,15 +736,14 @@ static void s3c_nand_wait_enc(struct s3c2410_nand_info *info)
 static void s3c_nand_wait_dec(struct s3c2410_nand_info *info)
 {
 	u32 timeo = HZ * 20 / 1000;
-	u32 time_start;
 	int timeout = 1;
 
-	time_start = jiffies;
+	timeo += jiffies;
 
 	/* wait until command is processed or timeout occures */
-	while (jiffies - time_start < timeo) {
+	while (jiffies < timeo) {
 		if (readl(info->regs + S5PV210_NFECCSTAT) & S5PV210_NFECCSTAT_DECDONE) {
-			/* printf("Decode complete\n"); */
+			dev_dbg(info->device, "Decode complete\n");
 			timeout = 0;
 			break;
 		}
@@ -757,7 +756,8 @@ static void s3c_nand_wait_dec(struct s3c2410_nand_info *info)
 static int s5pv210_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u_char *ecc_code)
 {
 	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
-	u_long nfcont, parity;
+	u_long nfcont, parity = 0;
+	int i;
 
 	/* Lock */
 	nfcont = readl(info->regs + S5PV210_NFCONT);
@@ -770,27 +770,11 @@ static int s5pv210_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 
 	s3c_nand_wait_enc(info);
 
-	parity = readl(info->regs + S5PV210_NFECCPRGECC0);
-	ecc_code[0] = parity & 0xff;
-	ecc_code[1] = (parity >> 8) & 0xff;
-	ecc_code[2] = (parity >> 16) & 0xff;
-	ecc_code[3] = (parity >> 24) & 0xff;
-	
-	parity = readl(info->regs + S5PV210_NFECCPRGECC1);
-	ecc_code[4] = parity & 0xff;
-	ecc_code[5] = (parity >> 8) & 0xff;
-	ecc_code[6] = (parity >> 16) & 0xff;
-	ecc_code[7] = (parity >> 24) & 0xff;
-
-	parity = readl(info->regs + S5PV210_NFECCPRGECC2);
-	ecc_code[8] = parity & 0xff;
-	ecc_code[9] = (parity >> 8) & 0xff;
-	ecc_code[10] = (parity >> 16) & 0xff;
-	ecc_code[11] = (parity >> 24) & 0xff;
-
-	parity = readl(info->regs + S5PV210_NFECCPRGECC3);
-	ecc_code[12] = parity & 0xff;
-	ecc_code[13] = (parity >> 8) & 0xff;
+	for (i = 0; i < 13; i++) {
+		if (i % 4 == 0)
+			parity = readl( info->regs + S5PV210_NFECCPRGECC0 + i );
+		ecc_code[i] = (parity >> ( 8 * (i % 4) )) & 0xff;
+	}
 
 	return 0;
 }
@@ -1378,7 +1362,7 @@ static struct platform_device_id s3c24xx_driver_ids[] = {
 		.driver_data	= TYPE_S3C2412, /* compatible with 2412 */
 	}, {
 		.name		= "s5pv210-nand",
-		.driver_data	= TYPE_S5PV210, /* compatible with 2412 */
+		.driver_data	= TYPE_S5PV210,
 	},
 
 	{ }
