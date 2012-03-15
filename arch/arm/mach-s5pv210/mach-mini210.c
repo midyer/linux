@@ -233,6 +233,9 @@ static struct platform_device *mini210_devices[] __initdata = {
 #ifdef CONFIG_DM9000
 	&mini210_device_dm9000,
 #endif
+
+	&s3c_device_rtc,
+	&s3c_device_wdt,
 };
 
 static void __init mini210_map_io(void)
