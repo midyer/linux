@@ -266,21 +266,34 @@ static struct platform_device mini210_leds = {
 };
 
 static struct platform_device *mini210_devices[] __initdata = {
+
+#ifdef CONFIG_S3C_DEV_HSMMC
 	&s3c_device_hsmmc0,
+#endif
+
+#ifdef CONFIG_S3C_DEV_HSMMC1
 	&s3c_device_hsmmc1,
+#endif
+
+#ifdef CONFIG_S3C_DEV_NAND
 	&s3c_device_nand,
+#endif
 
 #ifdef CONFIG_DM9000
 	&mini210_device_dm9000,
 #endif
 
+#ifdef CONFIG_S3C_DEV_RTC
 	&s3c_device_rtc,
+#endif
+
+#ifdef CONFIG_S3C_DEV_WDT
 	&s3c_device_wdt,
+#endif
 
 #ifdef CONFIG_S5P_DEV_SECSS
 	&s5p_device_secss,
 #endif
-
 
 	&mini210_leds,
 };
