@@ -149,12 +149,12 @@ static struct s3c2410_platform_nand mini210_nand_info = {
 static struct resource dm9000_resources[] = {
 	[0] = {
 		.start	= S5PV210_PA_DM9000_A,
-		.end	= S5PV210_PA_DM9000_A + SZ_1K*4 - 1,
+		.end	= S5PV210_PA_DM9000_A + SZ_1K * 4 - 1,
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {
 		.start	= S5PV210_PA_DM9000_F,
-		.end	= S5PV210_PA_DM9000_F + SZ_1K*4 - 1,
+		.end	= S5PV210_PA_DM9000_F + SZ_1K * 4 - 1,
 		.flags	= IORESOURCE_MEM,
 	},
 	[2] = {
@@ -180,7 +180,7 @@ struct platform_device mini210_device_dm9000 = {
 };
 
 static int __init dm9000_set_mac(char *str) {
-	unsigned char addr[6];
+
 	unsigned int val;
 	int idx = 0;
 	char *p = str, *end;
@@ -191,7 +191,7 @@ static int __init dm9000_set_mac(char *str) {
 			/* convert failed */
 			break;
 		} else {
-			addr[idx++] = val;
+			dm9000_platdata.dev_addr[idx++] = val;
 			p = end;
 			if (*p == ':'|| *p == '-') {
 				p++;
