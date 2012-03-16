@@ -276,9 +276,15 @@ static struct platform_device *mini210_devices[] __initdata = {
 
 	&s3c_device_rtc,
 	&s3c_device_wdt,
-	
+
+#ifdef CONFIG_S5P_DEV_SECSS
+	&s5p_device_secss,
+#endif
+
+
 	&mini210_leds,
 };
+
 
 static void __init mini210_map_io(void)
 {

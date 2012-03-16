@@ -1461,3 +1461,19 @@ struct platform_device s3c_device_wdt = {
 	.resource	= s3c_wdt_resource,
 };
 #endif /* CONFIG_S3C_DEV_WDT */
+
+#ifdef CONFIG_S5P_DEV_SECSS
+static struct resource s5p_secss_resource[] = {
+	[0] = DEFINE_RES_MEM(S5P_PA_SECSS, SZ_1M),
+	[1] = DEFINE_RES_IRQ_NAMED(IRQ_SSS_INT, "feed control"),
+	[2] = DEFINE_RES_IRQ_NAMED(IRQ_SSS_HASH, "hash"),
+};
+
+struct platform_device s5p_device_secss = {
+	.name		= "s5p-secss",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(s5p_secss_resource),
+	.resource	= s5p_secss_resource,
+};
+#endif
+

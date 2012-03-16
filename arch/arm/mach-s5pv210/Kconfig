@@ -178,6 +178,7 @@ config MACH_MINI210
 	select S3C_DEV_RTC
 	select S3C_DEV_WDT
 	select S3C_DEV_NAND
+	select S5P_DEV_SECSS
 	select S5PV210_SETUP_SDHCI
 	help
 	  Machine support for FriendlyARM Mini210
