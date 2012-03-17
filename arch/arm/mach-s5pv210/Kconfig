@@ -173,6 +173,7 @@ config MACH_TORBRECK
 config MACH_MINI210
 	bool "Mini210"
 	select CPU_S5PV210
+	select S3C_DEV_FB
 	select S3C_DEV_HSMMC
 	select S3C_DEV_HSMMC1
 	select S3C_DEV_RTC
@@ -181,6 +182,7 @@ config MACH_MINI210
 	select S5P_DEV_SECSS
 	select S5P_DEV_MFC
 	select S5PV210_SETUP_SDHCI
+	select S5PV210_SETUP_FB_24BPP
 	help
 	  Machine support for FriendlyARM Mini210
 	

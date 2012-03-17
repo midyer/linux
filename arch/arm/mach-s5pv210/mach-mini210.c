@@ -22,6 +22,7 @@
 #include <linux/pwm_backlight.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/lcd.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -52,6 +53,7 @@
 #include <plat/nand.h>
 #include <plat/sdhci.h>
 #include <plat/mfc.h>
+
 
 #ifdef CONFIG_DM9000
 #include <linux/dm9000.h>
@@ -266,6 +268,32 @@ static struct platform_device mini210_leds = {
 	}
 };
 
+#ifdef CONFIG_S3C_DEV_FB
+
+static struct s3c_fb_pd_win mini210_fb_win = {
+	.win_mode = {
+		.left_margin	= 40,
+		.right_margin	= 40,
+		.upper_margin	= 29,
+		.lower_margin	= 13,
+		.hsync_len		= 48,
+		.vsync_len		= 3,
+		.xres			= 800,
+		.yres			= 480,
+	},
+	.max_bpp			= 32,
+	.default_bpp		= 24,
+};
+
+static struct s3c_fb_platdata mini210_fb_pdata __initdata = {
+	.win[0]		= &mini210_fb_win,
+	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
+	.setup_gpio	= s5pv210_fb_gpio_setup_24bpp,
+};
+
+#endif
+
 static struct platform_device *mini210_devices[] __initdata = {
 
 #ifdef CONFIG_S3C_DEV_HSMMC
@@ -302,6 +330,10 @@ static struct platform_device *mini210_devices[] __initdata = {
 	&s5p_device_mfc_r,
 #endif
 
+#ifdef CONFIG_S3C_DEV_FB
+	&s3c_device_fb,
+#endif
+
 	&mini210_leds,
 };
 
@@ -311,15 +343,13 @@ static void __init mini210_map_io(void)
 	s5p_init_io(NULL, 0, S5P_VA_CHIPID);
 	s3c24xx_init_clocks(24000000);
 	s3c24xx_init_uarts(mini210_uartcfgs, ARRAY_SIZE(mini210_uartcfgs));
-	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
+	s5p_set_timer_source(S5P_PWM2, S5P_PWM4);
 }
 
 static void __init mini210_reserve(void)
 {
 #ifdef CONFIG_S5P_DEV_MFC
-	printk(KERN_ERR "*** Calling reserve ***\n");
 	s5p_mfc_reserve_mem(0x40000000, 8 << 20, 0x43800000, 8 << 20);
-	printk(KERN_ERR "***  Called reserve ***\n");
 #endif
 }
 
@@ -329,7 +359,13 @@ static void __init mini210_machine_init(void)
 
 	mini210_dm9000_set();
 
+#ifdef CONFIG_S3C_DEV_NAND
 	s3c_nand_set_platdata(&mini210_nand_info);
+#endif
+
+#ifdef CONFIG_S3C_DEV_FB
+	s3c_fb_set_platdata(&mini210_fb_pdata);
+#endif
 
 	platform_add_devices(mini210_devices, ARRAY_SIZE(mini210_devices));
 }
