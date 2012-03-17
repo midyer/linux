@@ -51,6 +51,7 @@
 #include <plat/regs-fb-v4.h>
 #include <plat/nand.h>
 #include <plat/sdhci.h>
+#include <plat/mfc.h>
 
 #ifdef CONFIG_DM9000
 #include <linux/dm9000.h>
@@ -295,6 +296,12 @@ static struct platform_device *mini210_devices[] __initdata = {
 	&s5p_device_secss,
 #endif
 
+#ifdef CONFIG_S5P_DEV_MFC
+	&s5p_device_mfc,
+	&s5p_device_mfc_l,
+	&s5p_device_mfc_r,
+#endif
+
 	&mini210_leds,
 };
 
@@ -307,6 +314,14 @@ static void __init mini210_map_io(void)
 	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
 }
 
+static void __init mini210_reserve(void)
+{
+#ifdef CONFIG_S5P_DEV_MFC
+	printk(KERN_ERR "*** Calling reserve ***\n");
+	s5p_mfc_reserve_mem(0x40000000, 8 << 20, 0x43800000, 8 << 20);
+	printk(KERN_ERR "***  Called reserve ***\n");
+#endif
+}
 
 static void __init mini210_machine_init(void)
 {
@@ -326,4 +341,5 @@ MACHINE_START(MINI210, "MINI110")
 	.map_io		= mini210_map_io,
 	.init_machine	= mini210_machine_init,
 	.timer		= &s5p_timer,
+	.reserve	= mini210_reserve
 MACHINE_END
