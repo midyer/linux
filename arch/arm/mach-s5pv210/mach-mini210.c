@@ -23,6 +23,8 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/lcd.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/spi_gpio.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -53,7 +55,6 @@
 #include <plat/nand.h>
 #include <plat/sdhci.h>
 #include <plat/mfc.h>
-
 
 #ifdef CONFIG_DM9000
 #include <linux/dm9000.h>
@@ -143,6 +144,34 @@ static struct s3c2410_platform_nand mini210_nand_info = {
 	.nr_sets	= ARRAY_SIZE(mini210_nand_sets),
 	.sets		= mini210_nand_sets,
 };
+
+static void __init mini210_wifi_init(void)
+{
+	/* WIFI 0 (builtin): block power --> PDn --> RESETn */
+	gpio_request(S5PV210_GPJ3(5), "GPJ3_5");
+	gpio_direction_output(S5PV210_GPJ3(5), 1);
+	udelay(10);
+	gpio_free(S5PV210_GPJ3(5));
+
+	gpio_request(S5PV210_GPJ3(7), "GPJ3_7");
+	gpio_direction_output(S5PV210_GPJ3(7), 1);
+	udelay(10);
+	gpio_free(S5PV210_GPJ3(7));
+
+	gpio_request(S5PV210_GPJ3(6), "GPJ3_6");
+	gpio_direction_output(S5PV210_GPJ3(6), 1);
+	gpio_free(S5PV210_GPJ3(6));
+
+	/* WIFI 1 (external): PDn --> RESETn */
+	gpio_request(S5PV210_GPJ4(1), "GPJ4_1");
+	gpio_direction_output(S5PV210_GPJ4(1), 1);
+	udelay(50);
+	gpio_free(S5PV210_GPJ4(4));
+
+	gpio_request(S5PV210_GPJ4(3), "GPJ4_3");
+	gpio_direction_output(S5PV210_GPJ4(3), 1);
+	gpio_free(S5PV210_GPJ4(3));
+}
 
 #ifdef CONFIG_DM9000
 
@@ -294,6 +323,13 @@ static struct s3c_fb_platdata mini210_fb_pdata __initdata = {
 
 #endif
 
+/* Wireless LAN */
+static struct s3c_sdhci_platdata mini210_hsmmc2_data __initdata = {
+	.max_width		= 4,
+	.cd_type		= S3C_SDHCI_CD_PERMANENT,
+	/* ext_cd_{init,cleanup} callbacks will be added later */
+};
+
 static struct platform_device *mini210_devices[] __initdata = {
 
 #ifdef CONFIG_S3C_DEV_HSMMC
@@ -302,6 +338,14 @@ static struct platform_device *mini210_devices[] __initdata = {
 
 #ifdef CONFIG_S3C_DEV_HSMMC1
 	&s3c_device_hsmmc1,
+#endif
+
+#ifdef CONFIG_S3C_DEV_HSMMC2
+	&s3c_device_hsmmc2,
+#endif
+
+#ifdef CONFIG_S3C_DEV_HSMMC3
+	&s3c_device_hsmmc3,
 #endif
 
 #ifdef CONFIG_S3C_DEV_NAND
@@ -358,6 +402,9 @@ static void __init mini210_machine_init(void)
 	s3c_pm_init();
 
 	mini210_dm9000_set();
+	mini210_wifi_init();
+
+	s3c_sdhci2_set_platdata(&mini210_hsmmc2_data);
 
 #ifdef CONFIG_S3C_DEV_NAND
 	s3c_nand_set_platdata(&mini210_nand_info);
@@ -368,6 +415,8 @@ static void __init mini210_machine_init(void)
 #endif
 
 	platform_add_devices(mini210_devices, ARRAY_SIZE(mini210_devices));
+
+
 }
 
 MACHINE_START(MINI210, "MINI110")
