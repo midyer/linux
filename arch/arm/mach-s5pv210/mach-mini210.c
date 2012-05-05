@@ -13,7 +13,9 @@
 #include <linux/dm9000.h>
 #include <linux/device.h>
 #include <linux/delay.h>
+#include <linux/fb.h>
 #include <linux/gpio.h>
+#include <linux/lcd.h>
 #include <linux/leds.h>
 
 #include <linux/mtd/mtd.h>
@@ -28,14 +30,18 @@
 #include <mach/map.h>
 #include <mach/regs-clock.h>
 
+#include <video/platform_lcd.h>
+
 #include <plat/cpu.h>
 #include <plat/devs.h>
+#include <plat/fb.h>
 #include <plat/gpio-cfg.h>
 #include <plat/mfc.h>
 #include <plat/nand.h>
 #include <plat/pm.h>
 #include <plat/s5p-time.h>
 
+#include <plat/regs-fb-v4.h>
 #include <plat/regs-serial.h>
 #include <plat/regs-srom.h>
 
@@ -246,7 +252,30 @@ static struct platform_device mini210_leds = {
 	}
 };
 
+static struct s3c_fb_pd_win mini210_fb_win = {
+	.win_mode = {
+		.left_margin	= 40,
+		.right_margin	= 40,
+		.upper_margin	= 29,
+		.lower_margin	= 13,
+		.hsync_len		= 48,
+		.vsync_len		= 3,
+		.xres			= 800,
+		.yres			= 480,
+	},
+	.max_bpp			= 32,
+	.default_bpp		= 24,
+};
+
+static struct s3c_fb_platdata mini210_fb_pdata __initdata = {
+	.win[0]		= &mini210_fb_win,
+	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
+	.setup_gpio	= s5pv210_fb_gpio_setup_24bpp,
+};
+
 static struct platform_device *mini210_devices[] __initdata = {
+	&s3c_device_fb,
 	&s3c_device_hsmmc0,
 	&s3c_device_hsmmc1,
 	&s3c_device_hsmmc2,
@@ -282,6 +311,8 @@ static void __init mini210_machine_init(void)
 	s3c_nand_set_platdata(&mini210_nand_info);
 
 	mini210_dm9000_set();
+
+	s3c_fb_set_platdata(&mini210_fb_pdata);
 
 	platform_add_devices(mini210_devices, ARRAY_SIZE(mini210_devices));
 }
