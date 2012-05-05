@@ -44,6 +44,7 @@
 #include <plat/keypad-core.h>
 #include <plat/tv-core.h>
 #include <plat/regs-serial.h>
+#include <plat/nand-core.h>
 
 #include "common.h"
 
@@ -201,6 +202,9 @@ void __init s5pv210_map_io(void)
 
 	/* Use s5pv210-keypad instead of samsung-keypad */
 	samsung_keypad_setname("s5pv210-keypad");
+
+	/* Select the right nand driver */
+	s3c_nand_setname("s5pv210-nand");
 
 	/* setup TV devices */
 	s5p_hdmi_setname("s5pv210-hdmi");

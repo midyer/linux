@@ -70,6 +70,21 @@ static struct nand_ecclayout nand_hw_eccoob = {
 	.oobfree = {{8, 8}}
 };
 
+static struct nand_ecclayout oob_64_8bit = {
+	.eccbytes = 52,
+	.eccpos = {
+		   12, 13, 14, 15,
+		   16, 17, 18, 19, 20, 21, 22, 23,
+		   24, 25, 26, 27, 28, 29, 30, 31,
+		   32, 33, 34, 35, 36, 37, 38, 39,
+		   40, 41, 42, 43, 44, 45, 46, 47,
+		   48, 49, 50, 51, 52, 53, 54, 55,
+		   56, 57, 58, 59, 60, 61, 62, 63},
+	.oobfree = {
+		{.offset = 2,
+		 .length = 10}}
+};
+
 /* controller and mtd information */
 
 struct s3c2410_nand_info;
@@ -94,6 +109,7 @@ enum s3c_cpu_type {
 	TYPE_S3C2410,
 	TYPE_S3C2412,
 	TYPE_S3C2440,
+	TYPE_S5PV210
 };
 
 enum s3c_nand_clk_state {
@@ -119,6 +135,7 @@ enum s3c_nand_clk_state {
  * @clk_rate: The clock rate from @clk.
  * @clk_state: The current clock state.
  * @cpu_type: The exact type of this controller.
+ * @curr_mode: Whether we're encoding or decoding ECC
  */
 struct s3c2410_nand_info {
 	/* mtd info */
@@ -143,6 +160,8 @@ struct s3c2410_nand_info {
 #ifdef CONFIG_CPU_FREQ
 	struct notifier_block	freq_transition;
 #endif
+
+	int curr_ecc_mode;
 };
 
 /* conversion functions */
@@ -283,6 +302,7 @@ static int s3c2410_nand_setrate(struct s3c2410_nand_info *info)
 
 	case TYPE_S3C2440:
 	case TYPE_S3C2412:
+	case TYPE_S5PV210:
 		mask = (S3C2440_NFCONF_TACLS(tacls_max - 1) |
 			S3C2440_NFCONF_TWRPH0(7) |
 			S3C2440_NFCONF_TWRPH1(7));
@@ -335,6 +355,9 @@ static int s3c2410_nand_inithw(struct s3c2410_nand_info *info)
 		/* enable the controller and de-assert nFCE */
 
 		writel(S3C2440_NFCONT_ENABLE, info->regs + S3C2440_NFCONT);
+
+	case TYPE_S5PV210:
+		writel(readl(info->regs + S5PV210_NFCONT) | S5PV210_NFCONT_MODE, info->regs + S5PV210_NFCONT);
 	}
 
 	return 0;
@@ -425,6 +448,20 @@ static void s3c2440_nand_hwcontrol(struct mtd_info *mtd, int cmd,
 		writeb(cmd, info->regs + S3C2440_NFADDR);
 }
 
+static void s5pv210_nand_hwcontrol(struct mtd_info *mtd, int cmd,
+				   unsigned int ctrl)
+{
+	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
+
+	if (cmd == NAND_CMD_NONE)
+		return;
+
+	if (ctrl & NAND_CLE)
+		writeb(cmd, info->regs + S5PV210_NFCMMD);
+	else
+		writeb(cmd, info->regs + S5PV210_NFADDR);
+}
+
 /* s3c2410_nand_devready()
  *
  * returns 0 if the nand is busy, 1 if it is ready
@@ -446,6 +483,12 @@ static int s3c2412_nand_devready(struct mtd_info *mtd)
 {
 	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
 	return readb(info->regs + S3C2412_NFSTAT) & S3C2412_NFSTAT_READY;
+}
+
+static int s5pv210_nand_devready(struct mtd_info *mtd)
+{
+	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
+	return readb(info->regs + S5PV210_NFSTAT) & S3C2412_NFSTAT_READY;
 }
 
 /* ECC handling functions */
@@ -524,6 +567,42 @@ static int s3c2410_nand_correct_data(struct mtd_info *mtd, u_char *dat,
 	return -1;
 }
 
+static int s5pv210_nand_correct_data(struct mtd_info *mtd, u_char *dat,
+				     u_char *read_ecc, u_char *calc_ecc)
+{
+	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
+	u32 nfecsecstat;
+	int errors;
+ 	int i;
+
+	nfecsecstat = readl(info->regs + S5PV210_NFECCSECSTAT);
+
+	errors = nfecsecstat & 0x1F;
+	if (errors == 0) {
+		/* printf("No ECC Errors\n"); */
+		return 0;
+	}
+
+	if (errors > 8) {
+		dev_warn(info->device, "Uncorrectable ECC errors\n");
+		return -1;
+	}
+
+	dev_info(info->device, "%d ECC correctable errors!\n", errors);
+
+	for (i = 0; i < 16; i++) {
+		if ( ((nfecsecstat >> (8 + i)) & 0x01) != 0) {
+			/* This location is valid */
+			int loc = (readl(info->regs + S5PV210_NFECCERL0 + (i / 2)) >> ((i % 2) * 16)) & 0x3FF;
+			int pat = (readl(info->regs + S5PV210_NFECCERP0 + (i / 4)) >> ((i % 4) * 8)) & 0xFF;
+			dat[loc] ^= pat;
+			dev_dbg(info->device, "Correcting byte %d pattern 0x%02x\n", loc, pat);
+		}
+	}
+
+	return errors;
+}
+
 /* ECC functions
  *
  * These allow the s3c2410 and s3c2440 to use the controller's ECC
@@ -556,6 +635,36 @@ static void s3c2440_nand_enable_hwecc(struct mtd_info *mtd, int mode)
 
 	ctrl = readl(info->regs + S3C2440_NFCONT);
 	writel(ctrl | S3C2440_NFCONT_INITECC, info->regs + S3C2440_NFCONT);
+}
+
+static void s5pv210_nand_enable_hwecc(struct mtd_info *mtd, int mode)
+{
+	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
+	u32 nfecconf, nfeccont, nfcont, nfecstat;
+
+	info->curr_ecc_mode = mode;
+
+	/* Clear done bits */
+	nfecstat = readl(info->regs + S5PV210_NFECCSTAT);
+	writel(nfecstat | S5PV210_NFECCSTAT_ENCDONE | S5PV210_NFECCSTAT_DECDONE, info->regs + S5PV210_NFECCSTAT);
+
+	nfecconf = readl(info->regs + S5PV210_NFECCCONF);
+	nfecconf &= ~(S5PV210_NFECCCONF_MSGLEN_MSK | S5PV210_NFECCCONF_ECC_MASK);
+	nfecconf |=  S5PV210_NFECCCONF_MSGLEN(512) | S5PV210_NFECCCONF_ECC_8BIT;
+	writel(nfecconf, info->regs + S5PV210_NFECCCONF);
+
+	/* Initialise ECC */
+	nfeccont = readl(info->regs + S5PV210_NFECCCONT);
+	if (mode == NAND_ECC_WRITE)
+		nfeccont |= S5PV210_NFECCCONT_ENC;
+	else
+		nfeccont &= ~S5PV210_NFECCCONT_ENC;
+
+	writel(nfeccont | S5PV210_NFECCCONT_INITECC, info->regs + S5PV210_NFECCCONT);
+
+	/* Unlock */
+	nfcont = readl(info->regs + S5PV210_NFCONT);
+	writel(nfcont &~ S5PV210_NFCONT_MAIN_ECCLOCK, info->regs + S5PV210_NFCONT);
 }
 
 static int s3c2410_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u_char *ecc_code)
@@ -599,6 +708,117 @@ static int s3c2440_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 
 	return 0;
 }
+
+static void s3c_nand_wait_enc(struct s3c2410_nand_info *info)
+{
+	u32 timeo = HZ * 20 / 1000;
+	int timeout = 1;
+
+	timeo += jiffies;
+
+	/* wait until command is processed or timeout occures */
+	while (jiffies < timeo) {
+		if (readl(info->regs + S5PV210_NFECCSTAT) & S5PV210_NFECCSTAT_ENCDONE) {
+			dev_dbg(info->device, "Encode complete\n");
+			timeout = 0;
+			break;
+		}
+	}
+
+	if (timeout)
+		dev_warn(info->device, "%s: Timeout!\n", __func__);
+
+}
+
+/*
+ * Function for checking ECCDecDone in NFSTAT
+ */
+static void s3c_nand_wait_dec(struct s3c2410_nand_info *info)
+{
+	u32 timeo = HZ * 20 / 1000;
+	int timeout = 1;
+
+	timeo += jiffies;
+
+	/* wait until command is processed or timeout occures */
+	while (jiffies < timeo) {
+		if (readl(info->regs + S5PV210_NFECCSTAT) & S5PV210_NFECCSTAT_DECDONE) {
+			dev_dbg(info->device, "Decode complete\n");
+			timeout = 0;
+			break;
+		}
+	}
+
+	if (timeout)
+		dev_warn(info->device, "%s: Timeout!\n", __func__);
+}
+
+static int s5pv210_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u_char *ecc_code)
+{
+	struct s3c2410_nand_info *info = s3c2410_nand_mtd_toinfo(mtd);
+	u_long nfcont, parity = 0;
+	int i;
+
+	/* Lock */
+	nfcont = readl(info->regs + S5PV210_NFCONT);
+	writel(nfcont | S5PV210_NFCONT_MAIN_ECCLOCK, info->regs + S5PV210_NFCONT);
+
+	if (info->curr_ecc_mode ==  NAND_ECC_READ) {
+		s3c_nand_wait_dec(info);
+		return 0;
+	}
+
+	s3c_nand_wait_enc(info);
+
+	for (i = 0; i < 13; i++) {
+		if (i % 4 == 0)
+			parity = readl( info->regs + S5PV210_NFECCPRGECC0 + i );
+		ecc_code[i] = (parity >> ( 8 * (i % 4) )) & 0xff;
+	}
+
+	return 0;
+}
+
+
+/* Special read function to push ECC parity into the decoder */
+
+static int s5pv210_nand_read_page(struct mtd_info *mtd,
+	struct nand_chip *chip, uint8_t *buf, int page)
+{
+
+	int i, eccsize = chip->ecc.size;
+	int eccbytes = chip->ecc.bytes;
+	int eccsteps = chip->ecc.steps;
+	uint8_t *p = buf;
+	uint8_t *ecc_code = chip->buffers->ecccode;
+	uint32_t *eccpos = chip->ecc.layout->eccpos;
+	uint8_t *ecc_calc = chip->buffers->ecccalc;
+
+	/* Read the OOB area first */
+	chip->cmdfunc(mtd, NAND_CMD_READOOB, 0, page);
+	chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
+	chip->cmdfunc(mtd, NAND_CMD_READ0, 0, page);
+
+	for (i = 0; i < chip->ecc.total; i++)
+		ecc_code[i] = chip->oob_poi[eccpos[i]];
+
+	for (i = 0; eccsteps; eccsteps--, i += eccbytes, p += eccsize) {
+		int stat;
+
+		chip->ecc.hwctl(mtd, NAND_ECC_READ);
+		chip->read_buf(mtd, p, eccsize);
+		chip->write_buf(mtd, chip->oob_poi + eccpos[0] + ((chip->ecc.steps - eccsteps) * eccbytes), eccbytes);
+		chip->ecc.calculate(mtd, p, &ecc_calc[i]);
+
+		stat = chip->ecc.correct(mtd, p, &ecc_code[i], NULL);
+		if (stat < 0)
+			mtd->ecc_stats.failed++;
+		else
+			mtd->ecc_stats.corrected += stat;
+	}
+	return 0;
+}
+
 
 /* over-ride the standard functions for a little more speed. We can
  * use read/write block to move the data buffers to/from the controller
@@ -810,6 +1030,17 @@ static void s3c2410_nand_init_chip(struct s3c2410_nand_info *info,
 			dev_info(info->device, "System booted from NAND\n");
 
 		break;
+
+	case TYPE_S5PV210:
+		chip->IO_ADDR_W = regs + S5PV210_NFDATA;
+		info->sel_reg   = regs + S5PV210_NFCONT;
+		info->sel_bit	= S5PV210_NFCONT_nFCE0;
+		chip->cmd_ctrl  = s5pv210_nand_hwcontrol;
+		chip->dev_ready = s5pv210_nand_devready;
+		chip->read_buf  = s3c2440_nand_read_buf;
+		chip->write_buf	= s3c2440_nand_write_buf;
+
+		break;
   	}
 
 	chip->IO_ADDR_R = chip->IO_ADDR_W;
@@ -840,6 +1071,12 @@ static void s3c2410_nand_init_chip(struct s3c2410_nand_info *info,
   			chip->ecc.calculate = s3c2440_nand_calculate_ecc;
 			break;
 
+		case TYPE_S5PV210:
+  			chip->ecc.hwctl     = s5pv210_nand_enable_hwecc;
+  			chip->ecc.calculate = s5pv210_nand_calculate_ecc;
+  			chip->ecc.correct   = s5pv210_nand_correct_data;
+			chip->ecc.read_page = s5pv210_nand_read_page;
+			break;
 		}
 	} else {
 		chip->ecc.mode	    = NAND_ECC_SOFT;
@@ -896,6 +1133,14 @@ static void s3c2410_nand_update_chip(struct s3c2410_nand_info *info,
 
 	if (chip->ecc.mode != NAND_ECC_HW)
 		return;
+
+	/* HW ECC on the 210 is special */
+	if(info->cpu_type == TYPE_S5PV210) {
+		chip->ecc.size	    = 512;
+		chip->ecc.bytes	    = 13;
+		chip->ecc.layout    = &oob_64_8bit;
+		return;
+	}
 
 		/* change the behaviour depending on wether we are using
 		 * the large or small page nand device */
@@ -1115,7 +1360,11 @@ static struct platform_device_id s3c24xx_driver_ids[] = {
 	}, {
 		.name		= "s3c6400-nand",
 		.driver_data	= TYPE_S3C2412, /* compatible with 2412 */
+	}, {
+		.name		= "s5pv210-nand",
+		.driver_data	= TYPE_S5PV210,
 	},
+
 	{ }
 };
 
