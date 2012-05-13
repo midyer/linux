@@ -25,7 +25,7 @@ obj-$(CONFIG_MACH_GONI)		+= mach-goni.o
 obj-$(CONFIG_MACH_SMDKC110)	+= mach-smdkc110.o
 obj-$(CONFIG_MACH_SMDKV210)	+= mach-smdkv210.o
 obj-$(CONFIG_MACH_TORBRECK)	+= mach-torbreck.o
-obj-$(CONFIG_MACH_MINI210)  += mach-mini210.o
+obj-$(CONFIG_MACH_MINI210)	+= mach-mini210.o
 
 # device support
 
@@ -40,3 +40,5 @@ obj-$(CONFIG_S5PV210_SETUP_IDE)		+= setup-ide.o
 obj-$(CONFIG_S5PV210_SETUP_KEYPAD)	+= setup-keypad.o
 obj-$(CONFIG_S5PV210_SETUP_SDHCI_GPIO)	+= setup-sdhci-gpio.o
 obj-$(CONFIG_S5PV210_SETUP_SPI)		+= setup-spi.o
+obj-$(CONFIG_S5PV210_SETUP_USB_PHY)	+= setup-usb-phy.o
+
