@@ -65,6 +65,11 @@ config S5PV210_SETUP_SPI
 	help
 	  Common setup code for SPI GPIO configurations.
 
+config S5PV210_SETUP_USB_PHY
+	bool
+	help
+	  Common setupt code for USB PHY.
+
 menu "S5PC110 Machines"
 
 config MACH_AQUILA
@@ -186,9 +191,11 @@ config MACH_MINI210
 	select S3C_DEV_WDT
 	select S3C_DEV_NAND
 	select S3C_DEV_FB
+	select S5P_DEV_USB_EHCI
 	select S5P_DEV_MFC
 	select S5PV210_SETUP_FB_24BPP
 	select S5PV210_SETUP_SDHCI
+	select S5PV210_SETUP_USB_PHY
 	help
 	  Machine support for FriendlyARM Mini210
 	

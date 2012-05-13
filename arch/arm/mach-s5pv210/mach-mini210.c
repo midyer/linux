@@ -33,7 +33,9 @@
 #include <video/platform_lcd.h>
 
 #include <plat/cpu.h>
+#include <plat/clock.h>
 #include <plat/devs.h>
+#include <plat/ehci.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
 #include <plat/mfc.h>
@@ -274,6 +276,15 @@ static struct s3c_fb_platdata mini210_fb_pdata __initdata = {
 	.setup_gpio	= s5pv210_fb_gpio_setup_24bpp,
 };
 
+static struct s5p_ehci_platdata mini210_ehci_pdata;
+
+static void __init mini210_ehci_init(void)
+{
+	struct s5p_ehci_platdata *pdata = &mini210_ehci_pdata;
+
+	s5p_ehci_set_platdata(pdata);
+}
+
 static struct platform_device *mini210_devices[] __initdata = {
 	&s3c_device_fb,
 	&s3c_device_hsmmc0,
@@ -286,7 +297,7 @@ static struct platform_device *mini210_devices[] __initdata = {
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
-
+	&s5p_device_ehci,
 	&mini210_device_dm9000,
 	&mini210_leds,
 };
@@ -301,7 +312,7 @@ static void __init mini210_map_io(void)
 
 static void __init mini210_reserve(void)
 {
-	s5p_mfc_reserve_mem(0x40000000, 8 << 20, 0x43800000, 8 << 20);
+	s5p_mfc_reserve_mem(0x40000000, 10 << 20, 0x43800000, 10 << 20);
 }
 
 static void __init mini210_machine_init(void)
@@ -313,6 +324,9 @@ static void __init mini210_machine_init(void)
 	mini210_dm9000_set();
 
 	s3c_fb_set_platdata(&mini210_fb_pdata);
+
+	clk_xusbxti.rate = 24000000;
+	mini210_ehci_init();
 
 	platform_add_devices(mini210_devices, ARRAY_SIZE(mini210_devices));
 }
