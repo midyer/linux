@@ -1,0 +1,248 @@
+/* linux/arch/arm/mach-s5pv210/mach-tiny210sdk.c
+ *
+ * Copyright (c) 2012 MDSoft LTd
+ * Mike Dyer <mike.dyer@md-soft.co.uk>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+*/
+
+#include <linux/kernel.h>
+#include <linux/types.h>
+#include <linux/init.h>
+#include <linux/serial_core.h>
+#include <linux/dm9000.h>
+#include <linux/device.h>
+#include <linux/delay.h>
+#include <linux/gpio.h>
+#include <linux/leds.h>
+
+#include <asm/hardware/vic.h>
+#include <asm/mach/arch.h>
+#include <asm/mach/map.h>
+#include <asm/setup.h>
+#include <asm/mach-types.h>
+
+#include <mach/map.h>
+#include <mach/regs-clock.h>
+
+#include <plat/cpu.h>
+#include <plat/clock.h>
+#include <plat/devs.h>
+#include <plat/gpio-cfg.h>
+#include <plat/pm.h>
+#include <plat/s5p-time.h>
+
+#include <plat/regs-serial.h>
+#include <plat/regs-srom.h>
+
+#include "common.h"
+
+/* Following are default values for UCON, ULCON and UFCON UART registers */
+#define TINY210_UCON_DEFAULT	(S3C2410_UCON_TXILEVEL |	\
+				 S3C2410_UCON_RXILEVEL |	\
+				 S3C2410_UCON_TXIRQMODE |	\
+				 S3C2410_UCON_RXIRQMODE |	\
+				 S3C2410_UCON_RXFIFO_TOI |	\
+				 S3C2443_UCON_RXERR_IRQEN)
+
+#define TINY210_ULCON_DEFAULT	S3C2410_LCON_CS8
+
+#define TINY210_UFCON_DEFAULT	(S3C2410_UFCON_FIFOMODE |	\
+				 S5PV210_UFCON_TXTRIG4 |	\
+				 S5PV210_UFCON_RXTRIG4)
+
+static struct s3c2410_uartcfg tiny210_uartcfgs[] __initdata = {
+	[0] = {
+		.hwport		= 0,
+		.flags		= 0,
+		.ucon		= TINY210_UCON_DEFAULT,
+		.ulcon		= TINY210_ULCON_DEFAULT,
+		.ufcon		= TINY210_UFCON_DEFAULT,
+	},
+	[1] = {
+		.hwport		= 1,
+		.flags		= 0,
+		.ucon		= TINY210_UCON_DEFAULT,
+		.ulcon		= TINY210_ULCON_DEFAULT,
+		.ufcon		= TINY210_UFCON_DEFAULT,
+	},
+	[2] = {
+		.hwport		= 2,
+		.flags		= 0,
+		.ucon		= TINY210_UCON_DEFAULT,
+		.ulcon		= TINY210_ULCON_DEFAULT,
+		.ufcon		= TINY210_UFCON_DEFAULT,
+	},
+	[3] = {
+		.hwport		= 3,
+		.flags		= 0,
+		.ucon		= TINY210_UCON_DEFAULT,
+		.ulcon		= TINY210_ULCON_DEFAULT,
+		.ufcon		= TINY210_UFCON_DEFAULT,
+	},
+};
+
+#define S5PV210_PA_DM9000_A     (0x88001000)
+#define S5PV210_PA_DM9000_F     (S5PV210_PA_DM9000_A + 0x300C)
+
+static struct resource dm9000_resources[] = {
+	[0] = {
+		.start	= S5PV210_PA_DM9000_A,
+		.end	= S5PV210_PA_DM9000_A + SZ_1K * 4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= S5PV210_PA_DM9000_F,
+		.end	= S5PV210_PA_DM9000_F + SZ_1K * 4 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[2] = {
+		.start	= IRQ_EINT(7),
+		.end	= IRQ_EINT(7),
+		.flags	= IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,
+	},
+};
+
+static struct dm9000_plat_data dm9000_platdata = {
+	.flags		= DM9000_PLATF_16BITONLY | DM9000_PLATF_NO_EEPROM,
+	.dev_addr	= { 0x08, 0x90, 0x00, 0xa0, 0x02, 0x10 },
+};
+
+struct platform_device tiny210_device_dm9000 = {
+	.name		= "dm9000",
+	.id			= -1,
+	.num_resources	= ARRAY_SIZE(dm9000_resources),
+	.resource	= dm9000_resources,
+	.dev		= {
+		.platform_data	= &dm9000_platdata,
+	},
+};
+
+static int __init dm9000_set_mac(char *str) {
+
+	unsigned int val;
+	int idx = 0;
+	char *p = str, *end;
+
+	while (*p && idx < 6) {
+		val = simple_strtoul(p, &end, 16);
+		if (end <= p) {
+			/* convert failed */
+			break;
+		} else {
+			dm9000_platdata.dev_addr[idx++] = val;
+			p = end;
+			if (*p == ':'|| *p == '-') {
+				p++;
+			} else {
+				break;
+			}
+		}
+	}
+
+	return 1;
+}
+
+__setup("ethmac=", dm9000_set_mac);
+
+static void __init tiny210_dm9000_set(void)
+{
+	unsigned int tmp;
+
+	tmp = ((0<<28)|(0<<24)|(5<<16)|(0<<12)|(0<<8)|(0<<4)|(0<<0));
+	__raw_writel(tmp, (S5P_SROM_BW+0x08));
+
+	tmp = __raw_readl(S5P_SROM_BW);
+	tmp &= ~(0xf << 4);
+	tmp |= (0x1 << 4); /* dm9000 16bit */
+	__raw_writel(tmp, S5P_SROM_BW);
+
+	gpio_request(S5PV210_MP01(1), "nCS1");
+	s3c_gpio_cfgpin(S5PV210_MP01(1), S3C_GPIO_SFN(2));
+	gpio_free(S5PV210_MP01(1));
+}
+
+static struct gpio_led gpio_leds[] = {
+	{
+		.name			= "led1",
+		.gpio			= S5PV210_GPJ2(0),
+		.active_low		= 1,
+		.default_trigger	= "heartbeat",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "led2",
+		.gpio			= S5PV210_GPJ2(1),
+		.active_low		= 1,
+		.default_trigger	= "none",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "led3",
+		.gpio			= S5PV210_GPJ2(2),
+		.active_low		= 1,
+		.default_trigger	= "mmc0",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},{
+		.name			= "led4",
+		.gpio			= S5PV210_GPJ2(3),
+		.active_low		= 1,
+		.default_trigger	= "nand-disk",
+		.default_state		= LEDS_GPIO_DEFSTATE_OFF,
+	},
+};
+
+static struct gpio_led_platform_data gpio_led_info = {
+	.leds		= gpio_leds,
+	.num_leds	= ARRAY_SIZE(gpio_leds),
+};
+
+static struct platform_device tiny210_leds = {
+	.name	= "leds-gpio",
+	.id	= 0,
+	.dev	= {
+		.platform_data	= &gpio_led_info,
+	}
+};
+
+static void __init tiny210_map_io(void)
+{
+	s5pv210_init_io(NULL, 0);
+	s3c24xx_init_clocks(24000000);
+	s3c24xx_init_uarts(tiny210_uartcfgs, ARRAY_SIZE(tiny210_uartcfgs));
+	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
+}
+
+static void __init tiny210_reserve(void)
+{
+	//s5p_mfc_reserve_mem(0x40000000, 8 << 20, 0x43800000, 8 << 20);
+}
+
+static struct platform_device *tiny210_devices[] __initdata = {
+	&s3c_device_hsmmc0,
+	&s3c_device_rtc,
+	&s3c_device_wdt,
+	&tiny210_device_dm9000,
+	&tiny210_leds,
+};
+
+static void __init tiny210_machine_init(void)
+{
+	s3c_pm_init();
+
+	tiny210_dm9000_set();
+
+	platform_add_devices(tiny210_devices, ARRAY_SIZE(tiny210_devices));
+}
+
+MACHINE_START(TINY210SDK, "TINY210 SDK")
+	/* Maintainer: Mike Dyer <mike.dyer@md-soft.co.uk> */
+	.atag_offset	= 0x100,
+	.init_irq	= s5pv210_init_irq,
+	.handle_irq	= vic_handle_irq,
+	.map_io		= tiny210_map_io,
+	.init_machine	= tiny210_machine_init,
+	.timer		= &s5p_timer,
+	.restart	= s5pv210_restart,
+	.reserve	= tiny210_reserve
+MACHINE_END
