@@ -17,6 +17,8 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/leds.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 
 #include <asm/hardware/vic.h>
 #include <asm/mach/arch.h>
@@ -31,6 +33,7 @@
 #include <plat/clock.h>
 #include <plat/devs.h>
 #include <plat/gpio-cfg.h>
+#include <plat/nand.h>
 #include <plat/pm.h>
 #include <plat/s5p-time.h>
 
@@ -205,6 +208,46 @@ static struct platform_device tiny210_leds = {
 	}
 };
 
+static struct mtd_partition tiny210_nand_part[] = {
+	[0] = {
+		.name	= "uboot",
+		.size	= SZ_256K,
+		.offset	= 0,
+	},
+	[1] = {
+		.name	= "uboot-env",
+		.size	= SZ_128K,
+		.offset	= SZ_256K,
+	},
+	[2] = {
+		.name	= "kernel",
+		.size	= SZ_4M,
+		.offset	= SZ_128K + SZ_256K,
+	},
+	[3] = {
+		.name	= "rootfs",
+		.size	= MTDPART_SIZ_FULL,
+		.offset	= SZ_4M + SZ_128K + SZ_256K,
+	},
+};
+
+static struct s3c2410_nand_set tiny210_nand_sets[] = {
+	[0] = {
+		.name		= "nand",
+		.nr_chips	= 1,
+		.nr_partitions	= ARRAY_SIZE(tiny210_nand_part),
+		.partitions	= tiny210_nand_part,
+	},
+};
+
+static struct s3c2410_platform_nand tiny210_nand_info = {
+	.tacls		= 25,
+	.twrph0		= 55,
+	.twrph1		= 40,
+	.nr_sets	= ARRAY_SIZE(tiny210_nand_sets),
+	.sets		= tiny210_nand_sets,
+};
+
 static void __init tiny210_map_io(void)
 {
 	s5pv210_init_io(NULL, 0);
@@ -222,6 +265,7 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_hsmmc0,
 	&s3c_device_rtc,
 	&s3c_device_wdt,
+	&s3c_device_nand,
 	&tiny210_device_dm9000,
 	&tiny210_leds,
 };
@@ -229,6 +273,8 @@ static struct platform_device *tiny210_devices[] __initdata = {
 static void __init tiny210_machine_init(void)
 {
 	s3c_pm_init();
+
+	s3c_nand_set_platdata(&tiny210_nand_info);
 
 	tiny210_dm9000_set();
 

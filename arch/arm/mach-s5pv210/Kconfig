@@ -200,6 +200,7 @@ config MACH_TINY210SDK
 	select S3C_DEV_HSMMC
 	select S3C_DEV_RTC
 	select S3C_DEV_WDT
+	select S3C_DEV_NAND
 	select S5PV210_SETUP_SDHCI
 	help
 	  Machine support for FriendlyArm TINY210 SDK
