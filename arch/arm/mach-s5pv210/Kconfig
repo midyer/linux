@@ -196,11 +196,13 @@ config MACH_TORBRECK
 config MACH_TINY210SDK
 	bool "TINY210 SDK"
 	select CPU_S5PV210
-	select ARCH_SPARSEMEM_ENABLE
 	select S3C_DEV_HSMMC
+	select S3C_DEV_FB
 	select S3C_DEV_RTC
+	select S5P_DEV_MFC
 	select S3C_DEV_WDT
 	select S3C_DEV_NAND
+	select S5PV210_SETUP_FB_24BPP
 	select S5PV210_SETUP_SDHCI
 	help
 	  Machine support for FriendlyArm TINY210 SDK
