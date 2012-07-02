@@ -15,6 +15,7 @@
 #include <linux/dm9000.h>
 #include <linux/device.h>
 #include <linux/delay.h>
+#include <linux/fb.h>
 #include <linux/gpio.h>
 #include <linux/leds.h>
 #include <linux/mtd/mtd.h>
@@ -32,11 +33,14 @@
 #include <plat/cpu.h>
 #include <plat/clock.h>
 #include <plat/devs.h>
+#include <plat/fb.h>
 #include <plat/gpio-cfg.h>
+#include <plat/mfc.h>
 #include <plat/nand.h>
 #include <plat/pm.h>
 #include <plat/s5p-time.h>
 
+#include <plat/regs-fb-v4.h>
 #include <plat/regs-serial.h>
 #include <plat/regs-srom.h>
 
@@ -63,7 +67,8 @@ static struct s3c2410_uartcfg tiny210_uartcfgs[] __initdata = {
 		.ucon		= TINY210_UCON_DEFAULT,
 		.ulcon		= TINY210_ULCON_DEFAULT,
 		.ufcon		= TINY210_UFCON_DEFAULT,
-	},
+	} ,
+	/*
 	[1] = {
 		.hwport		= 1,
 		.flags		= 0,
@@ -85,6 +90,7 @@ static struct s3c2410_uartcfg tiny210_uartcfgs[] __initdata = {
 		.ulcon		= TINY210_ULCON_DEFAULT,
 		.ufcon		= TINY210_UFCON_DEFAULT,
 	},
+	*/
 };
 
 #define S5PV210_PA_DM9000_A     (0x88001000)
@@ -248,6 +254,49 @@ static struct s3c2410_platform_nand tiny210_nand_info = {
 	.sets		= tiny210_nand_sets,
 };
 
+static struct s3c_fb_pd_win tiny210_fb_win0 = {
+	.win_mode = {
+		.left_margin	= 40,
+		.right_margin	= 40,
+		.upper_margin	= 29,
+		.lower_margin	= 13,
+		.hsync_len	= 48,
+		.vsync_len	= 3,
+		.xres		= 800,
+		.yres		= 480,
+	},
+	.max_bpp		= 32,
+	.default_bpp		= 24,
+};
+
+static struct s3c_fb_platdata tiny210_fb_pdata __initdata = {
+	.win[0]		= &tiny210_fb_win0,
+	.vidcon0	= VIDCON0_VIDOUT_RGB | VIDCON0_PNRMODE_RGB,
+	.vidcon1	= VIDCON1_INV_HSYNC | VIDCON1_INV_VSYNC,
+	.setup_gpio	= s5pv210_fb_gpio_setup_24bpp,
+};
+
+static void lcd_gpio_init(void)
+{
+	int err;
+
+	err = gpio_request(S5PV210_GPH1(2), "GPH1_2");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPH1(2) \n");
+
+	s3c_gpio_setpull(S5PV210_GPH1(2), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPH1(2), 1);
+	gpio_free(S5PV210_GPH1(2));
+
+	err = gpio_request(S5PV210_GPD0(1), "GPD0_1");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPD0(1) \n");
+
+	s3c_gpio_setpull(S5PV210_GPD0(1), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPD0(1), 1);
+	gpio_free(S5PV210_GPD0(1));
+}
+
 static void __init tiny210_map_io(void)
 {
 	s5pv210_init_io(NULL, 0);
@@ -258,11 +307,15 @@ static void __init tiny210_map_io(void)
 
 static void __init tiny210_reserve(void)
 {
-	//s5p_mfc_reserve_mem(0x40000000, 8 << 20, 0x43800000, 8 << 20);
+	s5p_mfc_reserve_mem(0x3EC00000, 10 << 20, 0x3F600000, 10 << 20);
 }
 
 static struct platform_device *tiny210_devices[] __initdata = {
+	&s3c_device_fb,
 	&s3c_device_hsmmc0,
+	&s5p_device_mfc,
+	&s5p_device_mfc_l,
+	&s5p_device_mfc_r,
 	&s3c_device_rtc,
 	&s3c_device_wdt,
 	&s3c_device_nand,
@@ -274,7 +327,11 @@ static void __init tiny210_machine_init(void)
 {
 	s3c_pm_init();
 
+	lcd_gpio_init();
+
 	s3c_nand_set_platdata(&tiny210_nand_info);
+
+	s3c_fb_set_platdata(&tiny210_fb_pdata);
 
 	tiny210_dm9000_set();
 
