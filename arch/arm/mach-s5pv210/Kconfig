@@ -198,12 +198,16 @@ config MACH_TINY210SDK
 	select CPU_S5PV210
 	select S3C_DEV_HSMMC
 	select S3C_DEV_FB
+	select S5P_DEV_FIMC0
+	select S5P_DEV_FIMC1
+	select S5P_DEV_FIMC2
 	select S3C_DEV_RTC
 	select S5P_DEV_MFC
 	select S3C_DEV_WDT
 	select S3C_DEV_NAND
 	select S5PV210_SETUP_FB_24BPP
 	select S5PV210_SETUP_SDHCI
+	select S5PV210_SETUP_FIMC
 	help
 	  Machine support for FriendlyArm TINY210 SDK
 
