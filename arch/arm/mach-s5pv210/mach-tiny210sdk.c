@@ -17,6 +17,7 @@
 #include <linux/delay.h>
 #include <linux/fb.h>
 #include <linux/gpio.h>
+#include <linux/i2c.h>
 #include <linux/leds.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
@@ -35,6 +36,7 @@
 #include <plat/devs.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
+#include <plat/iic.h>
 #include <plat/mfc.h>
 #include <plat/nand.h>
 #include <plat/pm.h>
@@ -43,6 +45,9 @@
 #include <plat/regs-fb-v4.h>
 #include <plat/regs-serial.h>
 #include <plat/regs-srom.h>
+
+#include <media/v4l2-mediabus.h>
+#include <media/s5p_fimc.h>
 
 #include "common.h"
 
@@ -297,6 +302,31 @@ static void lcd_gpio_init(void)
 	gpio_free(S5PV210_GPD0(1));
 }
 
+static void cam_a_init(void)
+{
+	int err;
+	err = gpio_request(S5PV210_GPJ2(6), "GPJ2_6");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPJ2(6) \n");
+
+	s3c_gpio_setpull(S5PV210_GPJ2(6), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPJ2(6), 1);
+	gpio_free(S5PV210_GPJ2(6));
+
+	err = gpio_request(S5PV210_GPJ3(1), "GPJ3_1");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPJ3(1) \n");
+
+	s3c_gpio_setpull(S5PV210_GPJ3(1), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPJ3(1), 0);
+
+	msleep(10);
+
+	gpio_set_value(S5PV210_GPJ3(1), 1);
+
+	gpio_free(S5PV210_GPJ2(6));
+}
+
 static void __init tiny210_map_io(void)
 {
 	s5pv210_init_io(NULL, 0);
@@ -310,9 +340,34 @@ static void __init tiny210_reserve(void)
 	s5p_mfc_reserve_mem(0x3EC00000, 10 << 20, 0x3F600000, 10 << 20);
 }
 
+static struct i2c_board_info tvp5150_board_info = {
+	I2C_BOARD_INFO("tvp5150", 0x5c),
+};
+
+static struct s5p_fimc_isp_info tiny210_video_capture_devs[] = {
+	{
+		.mux_id		= 0,
+		.flags		= 0,
+		.bus_type	= FIMC_ITU_601,
+		.board_info	= &tvp5150_board_info,
+		.i2c_bus_num	= 0,
+		.clk_frequency	= 14800000UL,
+	},
+};
+
+static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
+	.isp_info	= tiny210_video_capture_devs,
+	.num_clients	= ARRAY_SIZE(tiny210_video_capture_devs),
+};
+
 static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_fb,
+	&s5p_device_fimc0,
+	&s5p_device_fimc1,
+	&s5p_device_fimc2,
+	&s5p_device_fimc_md,
 	&s3c_device_hsmmc0,
+	&s3c_device_i2c0,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
@@ -328,12 +383,19 @@ static void __init tiny210_machine_init(void)
 	s3c_pm_init();
 
 	lcd_gpio_init();
+	cam_a_init();
 
 	s3c_nand_set_platdata(&tiny210_nand_info);
 
 	s3c_fb_set_platdata(&tiny210_fb_pdata);
 
 	tiny210_dm9000_set();
+
+	s3c_i2c0_set_platdata(NULL);
+
+	/* FIMC */
+	s3c_set_platdata(&tiny210_fimc_md_platdata, sizeof(tiny210_fimc_md_platdata),
+			 &s5p_device_fimc_md);
 
 	platform_add_devices(tiny210_devices, ARRAY_SIZE(tiny210_devices));
 }
