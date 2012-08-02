@@ -48,6 +48,7 @@
 
 #include <media/v4l2-mediabus.h>
 #include <media/s5p_fimc.h>
+#include <plat/camport.h>
 
 #include "common.h"
 
@@ -347,11 +348,11 @@ static struct i2c_board_info tvp5150_board_info = {
 static struct s5p_fimc_isp_info tiny210_video_capture_devs[] = {
 	{
 		.mux_id		= 0,
-		.flags		= 0,
-		.bus_type	= FIMC_ITU_601,
+		.bus_type	= FIMC_ITU_656,
 		.board_info	= &tvp5150_board_info,
 		.i2c_bus_num	= 0,
-		.clk_frequency	= 14800000UL,
+		.clk_frequency	= 27000000UL,
+		.flags		= 0
 	},
 };
 
@@ -394,6 +395,7 @@ static void __init tiny210_machine_init(void)
 	s3c_i2c0_set_platdata(NULL);
 
 	/* FIMC */
+	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
 	s3c_set_platdata(&tiny210_fimc_md_platdata, sizeof(tiny210_fimc_md_platdata),
 			 &s5p_device_fimc_md);
 
