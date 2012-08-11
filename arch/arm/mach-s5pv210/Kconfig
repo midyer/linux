@@ -201,6 +201,7 @@ config MACH_TINY210SDK
 	select S5P_DEV_FIMC0
 	select S5P_DEV_FIMC1
 	select S5P_DEV_FIMC2
+	select S5P_DEV_JPEG
 	select S3C_DEV_RTC
 	select S5P_DEV_MFC
 	select S3C_DEV_WDT
