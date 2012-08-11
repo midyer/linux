@@ -376,6 +376,7 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
+	&s5p_device_jpeg,
 	&s3c_device_rtc,
 	&s3c_device_wdt,
 	&s3c_device_nand,
