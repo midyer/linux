@@ -206,9 +206,11 @@ config MACH_TINY210SDK
 	select S5P_DEV_MFC
 	select S3C_DEV_WDT
 	select S3C_DEV_NAND
+	select S5P_DEV_USB_EHCI
 	select S5PV210_SETUP_FB_24BPP
 	select S5PV210_SETUP_SDHCI
 	select S5PV210_SETUP_FIMC
+	select S5PV210_SETUP_USB_PHY
 	help
 	  Machine support for FriendlyArm TINY210 SDK
 
