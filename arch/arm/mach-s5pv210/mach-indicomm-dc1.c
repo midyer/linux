@@ -31,8 +31,6 @@
 #include <mach/map.h>
 #include <mach/regs-clock.h>
 
-#include <media/ov9650.h>
-
 #include <plat/cpu.h>
 #include <plat/clock.h>
 #include <plat/devs.h>
@@ -200,33 +198,13 @@ static void __init idc1_reserve(void)
 	s5p_mfc_reserve_mem(0x3EC00000, 8 << 20, 0x3F400000, 8 << 20);
 }
 
-static struct ov9650_platform_data ov9650_platform_data __initdata = {
-	.mclk_frequency	= 24000000UL,
-	.gpio_reset	= S5PV210_GPJ3(1),
-	.gpio_pwdn	= S5PV210_GPJ2(6),
 };
 
-static struct i2c_board_info tvp5150_board_info = {
-	I2C_BOARD_INFO("OV9652", 0x60 >> 1),
-	.platform_data = &ov9650_platform_data,
 };
 
-static struct s5p_fimc_isp_info idc1_video_capture_devs[] = {
-	{
-		.mux_id		= 0,
-		.bus_type	= FIMC_ITU_601,
-		.board_info	= &tvp5150_board_info,
-		.i2c_bus_num	= 0,
-		.clk_frequency	= 24000000UL,
-		.flags			= V4L2_MBUS_PCLK_SAMPLE_RISING |
-					  V4L2_MBUS_VSYNC_ACTIVE_HIGH |
-					  V4L2_MBUS_HSYNC_ACTIVE_HIGH,
 	},
 };
 
-static struct s5p_platform_fimc idc1_fimc_md_platdata __initdata = {
-	.isp_info	= idc1_video_capture_devs,
-	.num_clients	= ARRAY_SIZE(idc1_video_capture_devs),
 };
 
 static struct s5p_ehci_platdata idc1_ehci_pdata;
@@ -253,11 +231,6 @@ static void __init idc1_machine_init(void)
 	s3c_pm_init();
 
 	s3c_nand_set_platdata(&idc1_nand_info);
-
-	/* FIMC */
-	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
-	s3c_set_platdata(&idc1_fimc_md_platdata, sizeof(idc1_fimc_md_platdata),
-			 &s5p_device_fimc_md);
 
 	s5p_ehci_set_platdata(&idc1_ehci_pdata);
 
