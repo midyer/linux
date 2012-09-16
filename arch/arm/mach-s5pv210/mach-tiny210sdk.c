@@ -223,23 +223,23 @@ static struct platform_device tiny210_leds = {
 static struct mtd_partition tiny210_nand_part[] = {
 	[0] = {
 		.name	= "uboot",
-		.size	= SZ_256K,
+		.size	= SZ_128K + SZ_256K,
 		.offset	= 0,
 	},
 	[1] = {
 		.name	= "uboot-env",
 		.size	= SZ_128K,
-		.offset	= SZ_256K,
+		.offset	= SZ_128K + SZ_256K,
 	},
 	[2] = {
 		.name	= "kernel",
-		.size	= SZ_4M,
-		.offset	= SZ_128K + SZ_256K,
+		.size	= SZ_1M + SZ_2M,
+		.offset	= SZ_128K + SZ_128K + SZ_256K,
 	},
 	[3] = {
 		.name	= "rootfs",
 		.size	= MTDPART_SIZ_FULL,
-		.offset	= SZ_4M + SZ_128K + SZ_256K,
+		.offset	= SZ_1M + SZ_2M + SZ_128K + SZ_128K + SZ_256K,
 	},
 };
 
