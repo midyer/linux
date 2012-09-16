@@ -778,7 +778,7 @@ static int s5pv210_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 /* Special read function to push ECC parity into the decoder */
 
 static int s5pv210_nand_read_page(struct mtd_info *mtd,
-	struct nand_chip *chip, uint8_t *buf, int page)
+	struct nand_chip *chip, uint8_t *buf, int oob, int page)
 {
 
 	int i, eccsize = chip->ecc.size;
