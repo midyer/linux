@@ -184,6 +184,12 @@ static inline u32 smsc911x_reg_read(struct smsc911x_data *pdata, u32 reg)
 	unsigned long flags;
 
 	spin_lock_irqsave(&pdata->dev_lock, flags);
+
+	if (pdata->config.set_fifo)
+		pdata->config.set_fifo(0);
+	if (pdata->config.set_offset)
+		pdata->config.set_offset(reg);
+
 	data = pdata->ops->reg_read(pdata, reg);
 	spin_unlock_irqrestore(&pdata->dev_lock, flags);
 
@@ -232,6 +238,12 @@ static inline void smsc911x_reg_write(struct smsc911x_data *pdata, u32 reg,
 	unsigned long flags;
 
 	spin_lock_irqsave(&pdata->dev_lock, flags);
+
+	if (pdata->config.set_fifo)
+		pdata->config.set_fifo(0);
+	if (pdata->config.set_offset)
+		pdata->config.set_offset(reg);
+
 	pdata->ops->reg_write(pdata, reg, val);
 	spin_unlock_irqrestore(&pdata->dev_lock, flags);
 }
@@ -244,6 +256,9 @@ smsc911x_tx_writefifo(struct smsc911x_data *pdata, unsigned int *buf,
 	unsigned long flags;
 
 	spin_lock_irqsave(&pdata->dev_lock, flags);
+
+	if (pdata->config.set_fifo)
+		pdata->config.set_fifo(1);
 
 	if (pdata->config.flags & SMSC911X_SWAP_FIFO) {
 		while (wordcount--)
@@ -276,6 +291,9 @@ smsc911x_tx_writefifo_shift(struct smsc911x_data *pdata, unsigned int *buf,
 	unsigned long flags;
 
 	spin_lock_irqsave(&pdata->dev_lock, flags);
+
+	if (pdata->config.set_fifo)
+		pdata->config.set_fifo(1);
 
 	if (pdata->config.flags & SMSC911X_SWAP_FIFO) {
 		while (wordcount--)
@@ -311,6 +329,9 @@ smsc911x_rx_readfifo(struct smsc911x_data *pdata, unsigned int *buf,
 
 	spin_lock_irqsave(&pdata->dev_lock, flags);
 
+	if (pdata->config.set_fifo)
+		pdata->config.set_fifo(1);
+
 	if (pdata->config.flags & SMSC911X_SWAP_FIFO) {
 		while (wordcount--)
 			*buf++ = swab32(__smsc911x_reg_read(pdata,
@@ -342,6 +363,9 @@ smsc911x_rx_readfifo_shift(struct smsc911x_data *pdata, unsigned int *buf,
 	unsigned long flags;
 
 	spin_lock_irqsave(&pdata->dev_lock, flags);
+
+	if (pdata->config.set_fifo)
+		pdata->config.set_fifo(1);
 
 	if (pdata->config.flags & SMSC911X_SWAP_FIFO) {
 		while (wordcount--)
@@ -2184,6 +2208,7 @@ static int __devinit smsc911x_init(struct net_device *dev)
 	case 0x92110000:
 	case 0x92200000:
 	case 0x92210000:
+	case 0x93110000:
 		/* LAN9210/LAN9211/LAN9220/LAN9221 */
 		pdata->generation = 4;
 		break;
