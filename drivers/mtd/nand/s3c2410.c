@@ -783,7 +783,7 @@ static int s5pv210_nand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u
 /* Special read function to push ECC parity into the decoder */
 
 static int s5pv210_nand_read_page(struct mtd_info *mtd,
-	struct nand_chip *chip, uint8_t *buf, int page)
+	struct nand_chip *chip, uint8_t *buf, int oob, int page)
 {
 
 	int i, eccsize = chip->ecc.size;
@@ -1073,9 +1073,9 @@ static void s3c2410_nand_init_chip(struct s3c2410_nand_info *info,
 			break;
 
 		case TYPE_S5PV210:
-  			chip->ecc.hwctl     = s5pv210_nand_enable_hwecc;
-  			chip->ecc.calculate = s5pv210_nand_calculate_ecc;
-  			chip->ecc.correct   = s5pv210_nand_correct_data;
+			chip->ecc.hwctl     = s5pv210_nand_enable_hwecc;
+			chip->ecc.calculate = s5pv210_nand_calculate_ecc;
+			chip->ecc.correct   = s5pv210_nand_correct_data;
 			chip->ecc.read_page = s5pv210_nand_read_page;
 			break;
 		}
