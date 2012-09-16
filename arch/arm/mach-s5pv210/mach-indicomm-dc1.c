@@ -18,9 +18,11 @@
 #include <linux/fb.h>
 #include <linux/gpio.h>
 #include <linux/i2c.h>
+#include <linux/ioport.h>
 #include <linux/leds.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/smsc911x.h>
 
 #include <asm/hardware/vic.h>
 #include <asm/mach/arch.h>
@@ -99,9 +101,6 @@ static struct s3c2410_uartcfg idc1_uartcfgs[] __initdata = {
 	},
 	*/
 };
-
-
-//__setup("ethmac=", dm9000_set_mac);
 
 static struct gpio_led gpio_leds[] = {
 	{
@@ -198,16 +197,69 @@ static void __init idc1_reserve(void)
 	s5p_mfc_reserve_mem(0x3EC00000, 8 << 20, 0x3F400000, 8 << 20);
 }
 
+static struct s5p_ehci_platdata idc1_ehci_pdata;
+
+static void idc1_set_fifo(u32 fifo_sel)
+{
+	//printk("%s: setting %d\n", __func__, fifo_sel);
+	gpio_set_value(S5PV210_GPG2(6), fifo_sel ? 1 : 0);
+}
+
+static void idc1_set_offset(u32 offset)
+{
+	//printk("%s: setting 0x%04x\n", __func__, offset);
+
+	gpio_set_value(S5PV210_GPG2(0), (offset >> 4) & 0x1);
+	gpio_set_value(S5PV210_GPG2(1), (offset >> 5) & 0x1);
+	gpio_set_value(S5PV210_GPG2(2), (offset >> 6) & 0x1);
+	gpio_set_value(S5PV210_GPG2(3), (offset >> 7) & 0x1);
+	gpio_set_value(S5PV210_GPG2(4), (offset >> 8) & 0x1);
+	gpio_set_value(S5PV210_GPG2(5), (offset >> 9) & 0x1);
+}
+
+static struct resource idc_smsc911x_resources[] = {
+	[0] = DEFINE_RES_MEM(S5PV210_PA_SROM_BANK1, SZ_64K),
+	[1] = DEFINE_RES_NAMED(IRQ_EINT(7), 1, NULL, IORESOURCE_IRQ \
+						| IRQF_TRIGGER_LOW),
 };
 
+static struct smsc911x_platform_config idc_smsc911x_config = {
+	.irq_polarity	= SMSC911X_IRQ_POLARITY_ACTIVE_LOW,
+	.irq_type	= SMSC911X_IRQ_TYPE_PUSH_PULL,
+	.flags		= SMSC911X_USE_16BIT | SMSC911X_FORCE_INTERNAL_PHY
+			| SMSC911X_SAVE_MAC_ADDRESS,
+	.phy_interface	= PHY_INTERFACE_MODE_MII,
+	.set_fifo = idc1_set_fifo,
+	.set_offset = idc1_set_offset,
 };
 
+static struct platform_device idc1_smsc911x = {
+	.name		= "smsc911x",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(idc_smsc911x_resources),
+	.resource	= idc_smsc911x_resources,
+	.dev		= {
+		.platform_data	= &idc_smsc911x_config,
 	},
 };
 
+struct gpio smsc911x_gpios[] = {
+	[0] = {S5PV210_GPG2(0), GPIOF_OUT_INIT_LOW, "smsc911x a[4]"},
+	[1] = {S5PV210_GPG2(1), GPIOF_OUT_INIT_LOW, "smsc911x a[5]"},
+	[2] = {S5PV210_GPG2(2), GPIOF_OUT_INIT_LOW, "smsc911x a[6]"},
+	[3] = {S5PV210_GPG2(3), GPIOF_OUT_INIT_LOW, "smsc911x a[7]"},
+	[4] = {S5PV210_GPG2(4), GPIOF_OUT_INIT_LOW, "smsc911x a[8]"},
+	[5] = {S5PV210_GPG2(5), GPIOF_OUT_INIT_LOW, "smsc911x a[9]"},
+	[6] = {S5PV210_GPG2(6), GPIOF_OUT_INIT_LOW, "smsc911x fifo_sel"},
 };
 
-static struct s5p_ehci_platdata idc1_ehci_pdata;
+static void smsc911x_init(void)
+{
+	gpio_request_array(smsc911x_gpios, ARRAY_SIZE(smsc911x_gpios));
+	gpio_request(S5PV210_GPH0(7), "EINT7");
+	s3c_gpio_cfgpin(S5PV210_GPH0(7), S3C_GPIO_SFN(0xF));
+	gpio_free(S5PV210_GPH0(7));
+}
 
 static struct platform_device *idc1_devices[] __initdata = {
 	&s5p_device_fimc0,
@@ -224,6 +276,7 @@ static struct platform_device *idc1_devices[] __initdata = {
 	&s3c_device_nand,
 	&s5p_device_ehci,
 	&idc1_leds,
+	&idc1_smsc911x,
 };
 
 static void __init idc1_machine_init(void)
@@ -233,6 +286,8 @@ static void __init idc1_machine_init(void)
 	s3c_nand_set_platdata(&idc1_nand_info);
 
 	s5p_ehci_set_platdata(&idc1_ehci_pdata);
+
+	smsc911x_init();
 
 	platform_add_devices(idc1_devices, ARRAY_SIZE(idc1_devices));
 }

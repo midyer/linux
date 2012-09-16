@@ -32,6 +32,8 @@ struct smsc911x_platform_config {
 	unsigned int shift;
 	phy_interface_t phy_interface;
 	unsigned char mac[6];
+	void (*set_fifo)(u32 fifo_sel);
+	void (*set_offset)(u32 offset);
 };
 
 /* Constants for platform_device irq polarity configuration */
