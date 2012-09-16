@@ -214,6 +214,23 @@ config MACH_TINY210SDK
 	help
 	  Machine support for FriendlyArm TINY210 SDK
 
+config MACH_IDCM_DC1
+	bool "Indicomm DC1"
+	select CPU_S5PV210
+	select S5P_DEV_FIMC0
+	select S5P_DEV_FIMC1
+	select S5P_DEV_FIMC2
+	select S5P_DEV_JPEG
+	select S3C_DEV_RTC
+	select S5P_DEV_MFC
+	select S3C_DEV_WDT
+	select S3C_DEV_NAND
+	select S5P_DEV_USB_EHCI
+	select S5PV210_SETUP_FIMC
+	select S5PV210_SETUP_USB_PHY
+	help
+	  Machine support for FriendlyArm TINY210 on Indicomm DC1 board
+
 endmenu
 
 endif
