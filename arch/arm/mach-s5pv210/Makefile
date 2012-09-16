@@ -26,6 +26,7 @@ obj-$(CONFIG_MACH_SMDKC110)	+= mach-smdkc110.o
 obj-$(CONFIG_MACH_SMDKV210)	+= mach-smdkv210.o
 obj-$(CONFIG_MACH_TORBRECK)	+= mach-torbreck.o
 obj-$(CONFIG_MACH_TINY210SDK)	+= mach-tiny210sdk.o
+obj-$(CONFIG_MACH_IDCM_DC1)	+= mach-indicomm-dc1.o
 
 # device support
 
