@@ -570,6 +570,12 @@ config VIDEO_NOON010PC30
 	---help---
 	  This driver supports NOON010PC30 CIF camera from Siliconfile
 
+config VIDEO_FAUX
+	tristate "Fake sensor for fixed ports"
+	depends on I2C && VIDEO_V4L2 && EXPERIMENTAL && VIDEO_V4L2_SUBDEV_API
+	---help---
+	  This driver creates a fake sensor with hard coded parameters
+
 source "drivers/media/video/m5mols/Kconfig"
 
 config VIDEO_S5K6AA
