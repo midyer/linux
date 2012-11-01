@@ -51,6 +51,7 @@
 
 #include <media/v4l2-mediabus.h>
 #include <media/s5p_fimc.h>
+#include <media/faux.h>
 #include <plat/camport.h>
 
 #include "common.h"
@@ -197,6 +198,34 @@ static void __init idc1_reserve(void)
 	s5p_mfc_reserve_mem(0x3EC00000, 8 << 20, 0x3F400000, 8 << 20);
 }
 
+static struct faux_video_platform_data faux_pldata = {
+	.width = 720,
+	.height = 576,
+	.field = V4L2_FIELD_ALTERNATE,
+	.code = V4L2_MBUS_FMT_UYVY8_2X8,
+};
+
+static struct i2c_board_info faux_board_info = {
+	I2C_BOARD_INFO("faux-sensor", 0x55),
+	.platform_data = &faux_pldata,
+};
+
+static struct s5p_fimc_isp_info idc1_video_capture_devs[] = {
+	{
+		.mux_id		= 0,
+		.bus_type	= FIMC_ITU_656,
+		.board_info	= &faux_board_info,
+		.i2c_bus_num	= 0,
+		.clk_frequency	= 27000000UL,
+		.flags		= 0
+	},
+};
+
+static struct s5p_platform_fimc idc1_fimc_md_platdata __initdata = {
+	.isp_info	= idc1_video_capture_devs,
+	.num_clients	= ARRAY_SIZE(idc1_video_capture_devs),
+};
+
 static struct s5p_ehci_platdata idc1_ehci_pdata;
 
 static void idc1_set_fifo(u32 fifo_sel)
@@ -261,6 +290,43 @@ static void smsc911x_init(void)
 	gpio_free(S5PV210_GPH0(7));
 }
 
+static void cam_a_init(void)
+{
+	int err;
+
+	printk(KERN_INFO "%s\n   A0(7) TVP5150 PDN %d\n"
+			 "   J2(6) TVP5150 RST %d\n"
+			 "   J3(1) CAM RST %d\n", __func__, S5PV210_GPA0(7),
+			 S5PV210_GPJ2(6), S5PV210_GPJ3(1));
+
+	/* Powerdown TVP5150 */
+	err = gpio_request(S5PV210_GPA0(7), "PDN");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPA0(7) \n");
+
+	s3c_gpio_setpull(S5PV210_GPA0(7), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPA0(7), 0);
+	gpio_free(S5PV210_GPA0(7));
+
+	/* Hold reset on TVP5150 */
+	err = gpio_request(S5PV210_GPJ2(6), "CAMA_GPIO_2");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPJ2(6) \n");
+
+	s3c_gpio_setpull(S5PV210_GPJ2(6), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPJ2(6), 0);
+	gpio_free(S5PV210_GPJ2(6));
+
+	/* Hold reset on camera */
+	err = gpio_request(S5PV210_GPJ3(1), "camreset_n");
+	if (err)
+		printk(KERN_ERR "#### failed to request GPJ3(1) \n");
+
+	s3c_gpio_setpull(S5PV210_GPJ3(1), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPJ3(1), 0);
+	gpio_free(S5PV210_GPJ3(1));
+}
+
 static struct platform_device *idc1_devices[] __initdata = {
 	&s5p_device_fimc0,
 	&s5p_device_fimc1,
@@ -288,6 +354,13 @@ static void __init idc1_machine_init(void)
 	s5p_ehci_set_platdata(&idc1_ehci_pdata);
 
 	smsc911x_init();
+
+	s3c_i2c0_set_platdata(NULL);
+
+	cam_a_init();
+	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
+	s3c_set_platdata(&idc1_fimc_md_platdata, sizeof(idc1_fimc_md_platdata),
+			 &s5p_device_fimc_md);
 
 	platform_add_devices(idc1_devices, ARRAY_SIZE(idc1_devices));
 }

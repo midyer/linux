@@ -339,6 +339,12 @@ config VIDEO_VPX3220
 	  To compile this driver as a module, choose M here: the
 	  module will be called vpx3220.
 
+config VIDEO_FAUX
+	tristate "Fake sensor for fixed ports"
+	depends on I2C && VIDEO_V4L2 && EXPERIMENTAL && VIDEO_V4L2_SUBDEV_API
+	---help---
+	  This driver creates a fake sensor with hard coded parameters
+
 comment "Video and audio decoders"
 
 config VIDEO_SAA717X
