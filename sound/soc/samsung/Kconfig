@@ -212,3 +212,14 @@ config SND_SOC_LITTLEMILL
 	select SND_SAMSUNG_I2S
 	select MFD_WM8994
 	select SND_SOC_WM8994
+
+config SND_SOC_TINY210SDK
+	tristate "SoC I2S Audio support for TINY210 SDK board"
+	depends on SND_SOC_SAMSUNG && MACH_TINY210SDK
+	depends on I2C=y && GENERIC_HARDIRQS
+	select SND_SAMSUNG_I2S
+	select SND_SOC_WM8960
+	help
+	  Say Y if you want to add support for SoC audio on the
+	  tiny210 SDK board
+
