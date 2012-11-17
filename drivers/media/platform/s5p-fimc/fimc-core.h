@@ -342,6 +342,7 @@ struct fimc_vid_cap {
 	int				refcnt;
 	u32				input;
 	bool				user_subdev_api;
+	bool				deinterlace;
 };
 
 /**
