@@ -62,6 +62,11 @@
 #define VIDEO_STD_NTSC_4_43_BIT_AS		 0x09
 #define VIDEO_STD_SECAM_BIT_AS		         0x0b
 
+#define TVP5150_IDR_DATA_LSB        0x21
+#define TVP5150_IDR_DATA_MSB        0x22
+#define TVP5150_IDR_ADDR            0x23
+#define TVP5150_IDR_STROBE          0x24
+
 /* Reserved 29h-2bh */
 
 #define TVP5150_CB_GAIN_FACT        0x2c /* Cb gain factor */
@@ -70,7 +75,9 @@
 #define TVP5150_MACROVISION_OFF_CTR 0x2f /* Macrovision off counter */
 #define TVP5150_REV_SELECT          0x30 /* revision select (TVP5150AM1 only) */
 
-/* Reserved	31h-7Fh */
+/* Reserved	31h-7Dh */
+#define TVP5150_PATCH_WRITE         0x7E
+#define TVP5150_PATCH_EXEC          0x7F
 
 #define TVP5150_MSB_DEV_ID          0x80 /* MSB of device ID */
 #define TVP5150_LSB_DEV_ID          0x81 /* LSB of device ID */
