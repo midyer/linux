@@ -109,6 +109,7 @@
 #define FIMC_REG_CIOCTRL_ORDER2P_SHIFT		24
 #define FIMC_REG_CIOCTRL_ORDER2P_MASK		(3 << 24)
 #define FIMC_REG_CIOCTRL_ORDER422_2P_LSB_CRCB	(0 << 24)
+#define FIMC_REG_CIOCTRL_WEAVE_OUT		(1 << 31)
 
 /* Pre-scaler control 1 */
 #define FIMC_REG_CISCPRERATIO			0x50
@@ -145,6 +146,16 @@
 /* Target area */
 #define FIMC_REG_CITAREA			0x5c
 #define FIMC_REG_CITAREA_MASK			0x0fffffff
+
+/* Line Skip */
+#define FIMC_REG_CIOLINESKIP			0x60
+#define FIMC_REG_CIOLINESKIP_Y_SHIFT		0
+#define FIMC_REG_CIOINESKIP_Y_MASK		(0xF << 0)
+#define FIMC_REG_CIOLINESKIP_CB_SHIFT		10
+#define FIMC_REG_CIOINESKIP_CB_MASK		(0xF << 10)
+#define FIMC_REG_CIOLINESKIP_CR_SHIFT		20
+#define FIMC_REG_CIOINESKIP_CR_MASK		(0xF << 20)
+
 
 /* General status */
 #define FIMC_REG_CISTATUS			0x64

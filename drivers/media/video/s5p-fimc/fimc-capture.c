@@ -180,11 +180,17 @@ void fimc_capture_irq_handler(struct fimc_dev *fimc, int deq_buf)
 	struct fimc_vid_buffer *v_buf;
 	struct timeval *tv;
 	struct timespec ts;
+	int next;
+
+	next = fimc_hw_get_frame_index(fimc);
 
 	if (test_and_clear_bit(ST_CAPT_SHUT, &fimc->state)) {
 		wake_up(&fimc->irq_queue);
 		goto done;
 	}
+
+	if (cap->deinterlace && (next == 1 || next == 3))
+		goto done;
 
 	if (!list_empty(&cap->active_buf_q) &&
 	    test_bit(ST_CAPT_RUN, &fimc->state) && deq_buf) {
@@ -209,10 +215,10 @@ void fimc_capture_irq_handler(struct fimc_dev *fimc, int deq_buf)
 		/* Move the buffer to the capture active queue */
 		fimc_active_queue_add(cap, v_buf);
 
-		dbg("next frame: %d, done frame: %d",
-		    fimc_hw_get_frame_index(fimc), v_buf->index);
+		dbg("next frame: %d, done frame: %d", next, v_buf->index);
 
-		if (++cap->buf_index >= FIMC_MAX_OUT_BUFS)
+		cap->buf_index += cap->deinterlace ? 2 : 1;
+		if (cap->buf_index >= FIMC_MAX_OUT_BUFS)
 			cap->buf_index = 0;
 	}
 
@@ -220,7 +226,8 @@ void fimc_capture_irq_handler(struct fimc_dev *fimc, int deq_buf)
 		if (deq_buf)
 			clear_bit(ST_CAPT_RUN, &fimc->state);
 
-		if (++cap->buf_index >= FIMC_MAX_OUT_BUFS)
+		cap->buf_index += cap->deinterlace ? 2 : 1;
+		if (cap->buf_index >= FIMC_MAX_OUT_BUFS)
 			cap->buf_index = 0;
 	} else {
 		set_bit(ST_CAPT_RUN, &fimc->state);
@@ -391,13 +398,19 @@ static void buffer_queue(struct vb2_buffer *vb)
 	struct fimc_vid_cap *vid_cap = &fimc->vid_cap;
 	unsigned long flags;
 	int min_bufs;
+	int max_bufs;
 
 	spin_lock_irqsave(&fimc->slock, flags);
 	fimc_prepare_addr(ctx, &buf->vb, &ctx->d_frame, &buf->paddr);
 
+	max_bufs = FIMC_MAX_OUT_BUFS;
+
+	if (vid_cap->deinterlace)
+		max_bufs /= 2;
+
 	if (!test_bit(ST_CAPT_SUSPENDED, &fimc->state) &&
 	    !test_bit(ST_CAPT_STREAM, &fimc->state) &&
-	    vid_cap->active_buf_cnt < FIMC_MAX_OUT_BUFS) {
+	    vid_cap->active_buf_cnt < max_bufs) {
 		/* Setup the buffer directly for processing. */
 		int buf_id = (vid_cap->reqbufs_count == 1) ? -1 :
 				vid_cap->buf_index;
@@ -406,7 +419,8 @@ static void buffer_queue(struct vb2_buffer *vb)
 		buf->index = vid_cap->buf_index;
 		fimc_active_queue_add(vid_cap, buf);
 
-		if (++vid_cap->buf_index >= FIMC_MAX_OUT_BUFS)
+		vid_cap->buf_index += vid_cap->deinterlace ? 2 : 1;
+		if (vid_cap->buf_index >= FIMC_MAX_OUT_BUFS)
 			vid_cap->buf_index = 0;
 	} else {
 		fimc_pending_queue_add(vid_cap, buf);
@@ -821,6 +835,7 @@ static int fimc_pipeline_try_format(struct fimc_ctx *ctx,
 			ffmt = fimc_capture_try_format(ctx,
 					       &tfmt->width, &tfmt->height,
 					       NULL, &fcc, FIMC_SD_PAD_SOURCE);
+
 			if (ffmt && ffmt->mbus_code)
 				mf->code = ffmt->mbus_code;
 			if (mf->width != tfmt->width ||
@@ -836,9 +851,12 @@ static int fimc_pipeline_try_format(struct fimc_ctx *ctx,
 			break;
 	}
 
+
 	if (fmt_id && ffmt)
 		*fmt_id = ffmt;
 	*tfmt = *mf;
+
+	printk(KERN_INFO "code: 0x%x, %dx%d, field: %d", mf->code, mf->width, mf->height, mf->field);
 
 	dbg("code: 0x%x, %dx%d, %p", mf->code, mf->width, mf->height, ffmt);
 	return 0;
@@ -966,6 +984,12 @@ static int fimc_capture_set_format(struct fimc_dev *fimc, struct v4l2_format *f)
 		set_frame_bounds(&ctx->s_frame, pix->width, pix->height);
 		set_frame_crop(&ctx->s_frame, 0, 0, pix->width, pix->height);
 	}
+
+	/* Check de-interlacing */
+	if (mf->field == V4L2_FIELD_ALTERNATE)
+		fimc->vid_cap.deinterlace = true;
+	else
+		fimc->vid_cap.deinterlace = false;
 
 	return ret;
 }

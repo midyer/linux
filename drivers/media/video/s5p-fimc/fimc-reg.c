@@ -160,6 +160,12 @@ static void fimc_hw_set_out_dma_size(struct fimc_ctx *ctx)
 		cfg |= FIMC_REG_CIGCTRL_CSC_ITU601_709;
 	else	/* SD */
 		cfg &= ~FIMC_REG_CIGCTRL_CSC_ITU601_709;
+
+	if (dev->vid_cap.deinterlace)
+		cfg |= FIMC_REG_CIGCTRL_INTERLACE;
+	else
+		cfg &= ~FIMC_REG_CIGCTRL_INTERLACE;
+
 	writel(cfg, dev->regs + FIMC_REG_CIGCTRL);
 
 }
@@ -206,7 +212,23 @@ void fimc_hw_set_out_dma(struct fimc_ctx *ctx)
 	else if (fmt->color == FIMC_FMT_RGB444)
 		cfg |= FIMC_REG_CIOCTRL_ARGB4444;
 
+#if 0
+	if (dev->vid_cap.deinterlace)
+		cfg |= FIMC_REG_CIOCTRL_WEAVE_OUT;
+	else
+		cfg &= ~FIMC_REG_CIOCTRL_WEAVE_OUT;
+#endif
+
 	writel(cfg, dev->regs + FIMC_REG_CIOCTRL);
+
+	cfg = 0;
+	if (dev->vid_cap.deinterlace)
+		cfg =     (1 << FIMC_REG_CIOLINESKIP_Y_SHIFT)
+			| (1 << FIMC_REG_CIOLINESKIP_CB_SHIFT)
+			| (1 << FIMC_REG_CIOLINESKIP_CR_SHIFT);
+
+	writel(cfg, dev->regs + FIMC_REG_CIOLINESKIP);
+
 }
 
 static void fimc_hw_en_autoload(struct fimc_dev *dev, int enable)
@@ -542,14 +564,28 @@ void fimc_hw_set_input_addr(struct fimc_dev *dev, struct fimc_addr *paddr)
 void fimc_hw_set_output_addr(struct fimc_dev *dev,
 			     struct fimc_addr *paddr, int index)
 {
+	struct fimc_vid_cap *vid_cap = &dev->vid_cap;
+
 	int i = (index == -1) ? 0 : index;
+	int max_bufs = FIMC_MAX_OUT_BUFS;
+	int skip = vid_cap->mf.width * 2;
+
+	if (vid_cap->deinterlace)
+		max_bufs /= 2;
 	do {
 		writel(paddr->y, dev->regs + FIMC_REG_CIOYSA(i));
 		writel(paddr->cb, dev->regs + FIMC_REG_CIOCBSA(i));
 		writel(paddr->cr, dev->regs + FIMC_REG_CIOCRSA(i));
 		dbg("dst_buf[%d]: 0x%X, cb: 0x%X, cr: 0x%X",
 		    i, paddr->y, paddr->cb, paddr->cr);
-	} while (index == -1 && ++i < FIMC_MAX_OUT_BUFS);
+
+		if (vid_cap->deinterlace) {
+			writel(paddr->y + skip, dev->regs + FIMC_REG_CIOYSA(i + 1));
+			writel(paddr->cb + skip, dev->regs + FIMC_REG_CIOCBSA(i + 1));
+			writel(paddr->cr + skip, dev->regs + FIMC_REG_CIOCRSA(i + 1));
+		}
+
+	} while (index == -1 && ++i < max_bufs);
 }
 
 int fimc_hw_set_camera_polarity(struct fimc_dev *fimc,
