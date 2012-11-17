@@ -724,15 +724,19 @@ static int pll_factors(unsigned int source, unsigned int target,
 	pr_debug("WM8960 PLL: setting %dHz->%dHz\n", source, target);
 
 	/* Scale up target to PLL operating frequency */
-	target *= 4;
+	target *= 4 * 2;
 
 	Ndiv = target / source;
+	pr_debug("WM8960 PLL: Initial N = %d\n", Ndiv);
 	if (Ndiv < 6) {
 		source >>= 1;
 		pll_div->pre_div = 1;
+		pr_debug("WM8960 PLL: prescaling source to %d\n", source);
 		Ndiv = target / source;
 	} else
 		pll_div->pre_div = 0;
+
+	pr_debug("WM8960 PLL: Chose N = %d\n", Ndiv);
 
 	if ((Ndiv < 6) || (Ndiv > 12)) {
 		pr_err("WM8960 PLL: Unsupported N=%d\n", Ndiv);
@@ -796,6 +800,7 @@ static int wm8960_set_dai_pll(struct snd_soc_dai *codec_dai, int pll_id,
 		snd_soc_write(codec, WM8960_PLL4, pll_div.k & 0x1ff);
 	}
 	snd_soc_write(codec, WM8960_PLL1, reg);
+	snd_soc_update_bits(codec, WM8960_CLOCK1, 0x6, 0x4);
 
 	/* Turn it on */
 	snd_soc_update_bits(codec, WM8960_POWER2, 0x1, 0x1);
@@ -818,6 +823,10 @@ static int wm8960_set_dai_clkdiv(struct snd_soc_dai *codec_dai,
 		break;
 	case WM8960_DACDIV:
 		reg = snd_soc_read(codec, WM8960_CLOCK1) & 0x1c7;
+		snd_soc_write(codec, WM8960_CLOCK1, reg | div);
+		break;
+	case WM8960_ADCDIV:
+		reg = snd_soc_read(codec, WM8960_CLOCK1) & 0x03f;
 		snd_soc_write(codec, WM8960_CLOCK1, reg | div);
 		break;
 	case WM8960_OPCLKDIV:
