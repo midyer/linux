@@ -299,27 +299,29 @@ static void cam_a_init(void)
 {
 	int err;
 
-	printk(KERN_INFO "%s\n   A0(7) TVP5150 PDN %d\n"
+	printk(KERN_INFO "%s\n   A0(6) TVP5150 PDN %d\n"
 			 "   J2(6) TVP5150 RST %d\n"
 			 "   J3(1) CAM RST %d\n", __func__, S5PV210_GPA0(7),
 			 S5PV210_GPJ2(6), S5PV210_GPJ3(1));
 
 	/* Powerdown TVP5150 */
-	err = gpio_request(S5PV210_GPA0(7), "PDN");
+	err = gpio_request(S5PV210_GPA0(6), "PDN");
 	if (err)
 		printk(KERN_ERR "#### failed to request GPA0(7) \n");
 
-	s3c_gpio_setpull(S5PV210_GPA0(7), S3C_GPIO_PULL_NONE);
-	gpio_direction_output(S5PV210_GPA0(7), 0);
-	gpio_free(S5PV210_GPA0(7));
+	s3c_gpio_setpull(S5PV210_GPA0(6), S3C_GPIO_PULL_NONE);
+	gpio_direction_output(S5PV210_GPA0(6), 1);
+	gpio_free(S5PV210_GPA0(6));
 
-	/* Hold reset on TVP5150 */
+	/* Reset on TVP5150 */
 	err = gpio_request(S5PV210_GPJ2(6), "CAMA_GPIO_2");
 	if (err)
 		printk(KERN_ERR "#### failed to request GPJ2(6) \n");
 
 	s3c_gpio_setpull(S5PV210_GPJ2(6), S3C_GPIO_PULL_NONE);
 	gpio_direction_output(S5PV210_GPJ2(6), 0);
+	msleep(10);
+	gpio_set_value(S5PV210_GPJ2(6), 1);
 	gpio_free(S5PV210_GPJ2(6));
 
 	/* Hold reset on camera */
@@ -329,6 +331,8 @@ static void cam_a_init(void)
 
 	s3c_gpio_setpull(S5PV210_GPJ3(1), S3C_GPIO_PULL_NONE);
 	gpio_direction_output(S5PV210_GPJ3(1), 0);
+	msleep(10);
+	gpio_set_value(S5PV210_GPJ3(1), 1);
 	gpio_free(S5PV210_GPJ3(1));
 }
 
