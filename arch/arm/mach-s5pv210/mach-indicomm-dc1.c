@@ -210,11 +210,16 @@ static struct i2c_board_info faux_board_info = {
 	.platform_data = &faux_pldata,
 };
 
+static struct i2c_board_info tvp5150_board_info = {
+	I2C_BOARD_INFO("tvp5150", 0x5c),
+};
+
 static struct s5p_fimc_isp_info idc1_video_capture_devs[] = {
 	{
 		.mux_id		= 0,
 		.bus_type	= FIMC_ITU_656,
 		.board_info	= &faux_board_info,
+		//.board_info	= &tvp5150_board_info,
 		.i2c_bus_num	= 0,
 		.clk_frequency	= 27000000UL,
 		.flags		= 0
