@@ -34,16 +34,16 @@
 #include <plat/cpu.h>
 #include <plat/clock.h>
 #include <plat/devs.h>
-#include <plat/ehci.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
-#include <plat/iic.h>
 #include <plat/mfc.h>
-#include <plat/nand.h>
 #include <plat/pm.h>
 #include <plat/s5p-time.h>
 
-#include <plat/regs-fb-v4.h>
+#include <linux/platform_data/usb-ehci-s5p.h>
+#include <linux/platform_data/mtd-nand-s3c2410.h>
+#include <linux/platform_data/i2c-s3c2410.h>
+
 #include <plat/regs-serial.h>
 #include <plat/regs-srom.h>
 
@@ -51,6 +51,7 @@
 #include <media/s5p_fimc.h>
 #include <plat/camport.h>
 #include <sound/wm8960.h>
+#include <video/samsung_fimd.h>
 
 #include "common.h"
 
@@ -371,7 +372,6 @@ static struct i2c_board_info __initdata i2c0_devices[] = {
 	{ 	I2C_BOARD_INFO("wm8960", 0x1a),
 		.platform_data = &(struct wm8960_data) {
 			.capless = 0,
-			.dres = WM8960_DRES_MAX,
 			},
 	},
 };
