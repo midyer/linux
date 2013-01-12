@@ -49,6 +49,7 @@
 #include <media/v4l2-mediabus.h>
 #include <media/s5p_fimc.h>
 #include <plat/camport.h>
+#include <sound/wm8960.h>
 
 #include "common.h"
 
@@ -365,6 +366,20 @@ static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
 	.num_clients	= ARRAY_SIZE(tiny210_video_capture_devs),
 };
 
+static struct i2c_board_info __initdata i2c0_devices[] = {
+	{ 	I2C_BOARD_INFO("wm8960", 0x1a),
+		.platform_data = &(struct wm8960_data) {
+			.capless = 0,
+			.dres = WM8960_DRES_MAX,
+			},
+	},
+};
+
+static struct platform_device tiny210_audio = {
+	.name	= "tiny210sdk-audio",
+	.id	= 0,
+};
+
 static struct s5p_ehci_platdata tiny210_ehci_pdata;
 
 static struct platform_device *tiny210_devices[] __initdata = {
@@ -375,6 +390,7 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s5p_device_fimc_md,
 	&s3c_device_hsmmc0,
 	&s3c_device_i2c0,
+	&s5pv210_device_iis0,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
@@ -383,8 +399,11 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_wdt,
 	&s3c_device_nand,
 	&s5p_device_ehci,
+	&samsung_asoc_dma,
+	&samsung_asoc_idma,
 	&tiny210_device_dm9000,
 	&tiny210_leds,
+	&tiny210_audio,
 };
 
 static void __init tiny210_machine_init(void)
@@ -401,6 +420,7 @@ static void __init tiny210_machine_init(void)
 	tiny210_dm9000_set();
 
 	s3c_i2c0_set_platdata(NULL);
+	i2c_register_board_info(0, i2c0_devices, ARRAY_SIZE(i2c0_devices));
 
 	/* FIMC */
 	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
