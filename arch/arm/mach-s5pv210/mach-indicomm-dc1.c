@@ -333,6 +333,8 @@ static struct platform_device *idc1_devices[] __initdata = {
 	&s5p_device_fimc2,
 	&s5p_device_fimc_md,
 	&s3c_device_i2c0,
+	&s3c_device_i2c1,
+	&s3c_device_i2c2,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
@@ -356,6 +358,8 @@ static void __init idc1_machine_init(void)
 	smsc911x_init();
 
 	s3c_i2c0_set_platdata(NULL);
+	s3c_i2c1_set_platdata(NULL);
+	s3c_i2c2_set_platdata(NULL);
 
 	cam_a_init();
 	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
