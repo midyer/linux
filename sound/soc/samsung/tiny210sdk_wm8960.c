@@ -112,26 +112,19 @@ static int tiny210_hw_params(struct snd_pcm_substream *substream,
 	if (ret != 0)
 		pr_err("%s: couldn't set DAC divider\n", __func__);
 
-	for (i = 0; i <= 0x37; i++) {
-		printk(KERN_ERR "0x%02x == 0x%03x\n", i, snd_soc_read(codec, i));
-	}
 	return ret;
 }
 
 static const struct snd_soc_dapm_widget tiny210_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone Jack", NULL),
-	SND_SOC_DAPM_SPK("Speaker Hdr", NULL),
 	SND_SOC_DAPM_MIC("Microphone", NULL),
 };
 
 static const struct snd_soc_dapm_route tiny210_audio_map[] = {
 	{"Headphone Jack", NULL, "HP_R"},
 	{"Headphone Jack", NULL, "HP_L"},
-	{"Speaker Hdr", NULL, "SPK_RP"},
-	{"Speaker Hdr", NULL, "SPK_RN"},
-	{"Speaker Hdr", NULL, "SPK_LP"},
-	{"Speaker Hdr", NULL, "SPK_LN"},
-	{"Microphone", NULL, "LINPUT1"},
+	{"LINPUT1", NULL, "Microphone"},
+	{"Microphone", NULL, "MICB"},
 };
 
 static struct snd_soc_ops tiny210_ops = {

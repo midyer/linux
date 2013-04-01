@@ -370,8 +370,8 @@ static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
 static struct i2c_board_info __initdata i2c0_devices[] = {
 	{ 	I2C_BOARD_INFO("wm8960", 0x1a),
 		.platform_data = &(struct wm8960_data) {
-			.capless = 0,
-			.dres = WM8960_DRES_MAX,
+			.capless = false,
+			.shared_lrclk = true,
 			},
 	},
 };

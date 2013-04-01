@@ -991,12 +991,13 @@ static int wm8960_probe(struct snd_soc_codec *codec)
 		return ret;
 	}
 
+/*
 	ret = wm8960_reset(codec);
 	if (ret < 0) {
 		dev_err(codec->dev, "Failed to issue reset\n");
 		return ret;
 	}
-
+*/
 	wm8960->set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
 	/* Latch the update bits */
