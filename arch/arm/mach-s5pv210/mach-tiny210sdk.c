@@ -347,6 +347,7 @@ static void __init tiny210_reserve(void)
 	s5p_mfc_reserve_mem(0x3EC00000, 10 << 20, 0x3F600000, 10 << 20);
 }
 
+#ifdef CONFIG_VIDEO_TVP5150
 static struct i2c_board_info tvp5150_board_info = {
 	I2C_BOARD_INFO("tvp5150", 0x5c),
 };
@@ -366,6 +367,7 @@ static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
 	.isp_info	= tiny210_video_capture_devs,
 	.num_clients	= ARRAY_SIZE(tiny210_video_capture_devs),
 };
+#endif
 
 static struct i2c_board_info __initdata i2c0_devices[] = {
 	{ 	I2C_BOARD_INFO("wm8960", 0x1a),
@@ -423,11 +425,12 @@ static void __init tiny210_machine_init(void)
 	s3c_i2c0_set_platdata(NULL);
 	i2c_register_board_info(0, i2c0_devices, ARRAY_SIZE(i2c0_devices));
 
+#ifdef CONFIG_VIDEO_TVP5150
 	/* FIMC */
 	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
 	s3c_set_platdata(&tiny210_fimc_md_platdata, sizeof(tiny210_fimc_md_platdata),
 			 &s5p_device_fimc_md);
-
+#endif
 	s5p_ehci_set_platdata(&tiny210_ehci_pdata);
 
 	platform_add_devices(tiny210_devices, ARRAY_SIZE(tiny210_devices));
