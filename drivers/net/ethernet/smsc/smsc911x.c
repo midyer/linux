@@ -1095,8 +1095,15 @@ static int __devinit smsc911x_mii_init(struct platform_device *pdev,
 	}
 
 	if (!pdata->using_extphy) {
-		/* Mask all PHYs except ID 1 (internal) */
-		pdata->mii_bus->phy_mask = ~(1 << 1);
+		/* Mask all PHYs except internal IDs */
+		switch(pdata->idrev & 0xFFFF0000){
+		case 0x93110000:
+			pdata->mii_bus->phy_mask = ~(1 << 0) & ~(1 << 1) & ~(1 << 2);
+			break;
+		default:
+			pdata->mii_bus->phy_mask = ~(1 << 1);
+			break;
+		}
 	}
 
 	if (mdiobus_register(pdata->mii_bus)) {
