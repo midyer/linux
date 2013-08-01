@@ -280,6 +280,7 @@ static struct smsc911x_platform_config idc_smsc911x_config = {
 	.phy_interface	= PHY_INTERFACE_MODE_MII,
 	.set_fifo = idc1_set_fifo,
 	.set_offset = idc1_set_offset,
+	.mac = {0x02, 0x00, 0x00, 0x00, 0x00, 0x01}
 };
 
 static struct platform_device idc1_smsc911x = {
