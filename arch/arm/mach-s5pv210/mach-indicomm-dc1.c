@@ -53,6 +53,7 @@
 #include <media/s5p_fimc.h>
 #include <media/faux.h>
 #include <plat/camport.h>
+#include <sound/wm8960.h>
 
 #include "common.h"
 
@@ -231,6 +232,20 @@ static struct s5p_platform_fimc idc1_fimc_md_platdata __initdata = {
 	.num_clients	= ARRAY_SIZE(idc1_video_capture_devs),
 };
 
+static struct i2c_board_info __initdata i2c0_devices[] = {
+	{ 	I2C_BOARD_INFO("wm8960", 0x1a),
+		.platform_data = &(struct wm8960_data) {
+			.capless = false,
+			.shared_lrclk = true,
+			},
+	},
+};
+
+static struct platform_device idc1_audio = {
+	.name	= "tiny210sdk-audio",
+	.id	= 0,
+};
+
 static struct s5p_ehci_platdata idc1_ehci_pdata;
 
 static void idc1_set_fifo(u32 fifo_sel)
@@ -336,6 +351,20 @@ static void cam_a_init(void)
 	gpio_free(S5PV210_GPJ3(1));
 }
 
+static void idc1_set_audio_clk(void)
+{
+	u32 *regs;
+	regs = ioremap(S5PV210_PA_ACLK, 0xc);
+	if (regs) {
+		printk("%s: ASS CLK SRC: 0x%08x\n", __func__, regs[0]);
+		printk("%s: ASS CLK DIV: 0x%08x\n", __func__, regs[1]);
+		printk("%s: ASS CLK GTE: 0x%08x\n", __func__, regs[2]);
+		iounmap(regs);
+	} else {
+		printk("%s: Can't ioremap audio clock controller\n", __func__);
+	}
+}
+
 static struct platform_device *idc1_devices[] __initdata = {
 	&s5p_device_fimc0,
 	&s5p_device_fimc1,
@@ -344,6 +373,7 @@ static struct platform_device *idc1_devices[] __initdata = {
 	&s3c_device_i2c0,
 	&s3c_device_i2c1,
 	&s3c_device_i2c2,
+	&s5pv210_device_iis0,
 	&s5p_device_mfc,
 	&s5p_device_mfc_l,
 	&s5p_device_mfc_r,
@@ -354,6 +384,9 @@ static struct platform_device *idc1_devices[] __initdata = {
 	&s5p_device_ehci,
 	&idc1_leds,
 	&idc1_smsc911x,
+	&samsung_asoc_dma,
+	&samsung_asoc_idma,
+	&idc1_audio,
 };
 
 static void __init idc1_machine_init(void)
@@ -374,6 +407,11 @@ static void __init idc1_machine_init(void)
 	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
 	s3c_set_platdata(&idc1_fimc_md_platdata, sizeof(idc1_fimc_md_platdata),
 			 &s5p_device_fimc_md);
+
+	s3c_i2c0_set_platdata(NULL);
+	i2c_register_board_info(0, i2c0_devices, ARRAY_SIZE(i2c0_devices));
+
+	idc1_set_audio_clk();
 
 	platform_add_devices(idc1_devices, ARRAY_SIZE(idc1_devices));
 }
