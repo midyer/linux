@@ -215,7 +215,7 @@ config SND_SOC_LITTLEMILL
 
 config SND_SOC_TINY210SDK
 	tristate "SoC I2S Audio support for TINY210 SDK board"
-	depends on SND_SOC_SAMSUNG && MACH_TINY210SDK
+	depends on SND_SOC_SAMSUNG && (MACH_TINY210SDK || MACH_IDCM_DC1)
 	depends on I2C=y && GENERIC_HARDIRQS
 	select SND_SAMSUNG_I2S
 	select SND_SOC_WM8960

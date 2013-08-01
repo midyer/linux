@@ -383,6 +383,20 @@ static struct platform_device tiny210_audio = {
 	.id	= 0,
 };
 
+static void tiny210_set_audio_clk(void)
+{
+	u32 *regs;
+	regs = ioremap(S5PV210_PA_ACLK, 0xc);
+	if (regs) {
+		printk("ASS CLK SRC: 0x%08x\n", regs[0]);
+		printk("ASS CLK DIV: 0x%08x\n", regs[1]);
+		printk("ASS CLK GTE: 0x%08x\n", regs[2]);
+		iounmap(regs);
+	} else {
+		printk("Can't ioremap audio clock controller\n");
+	}
+}
+
 static struct s5p_ehci_platdata tiny210_ehci_pdata;
 
 static struct platform_device *tiny210_devices[] __initdata = {
@@ -432,6 +446,8 @@ static void __init tiny210_machine_init(void)
 			 &s5p_device_fimc_md);
 #endif
 	s5p_ehci_set_platdata(&tiny210_ehci_pdata);
+
+	tiny210_set_audio_clk();
 
 	platform_add_devices(tiny210_devices, ARRAY_SIZE(tiny210_devices));
 }
