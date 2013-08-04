@@ -22,7 +22,6 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 
-#include <asm/hardware/vic.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 #include <asm/setup.h>
@@ -34,6 +33,7 @@
 #include <plat/cpu.h>
 #include <plat/clock.h>
 #include <plat/devs.h>
+#include <plat/ehci.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
 #include <plat/iic.h>
@@ -365,6 +365,8 @@ static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
 	.num_clients	= ARRAY_SIZE(tiny210_video_capture_devs),
 };
 
+static struct s5p_ehci_platdata tiny210_ehci_pdata;
+
 static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_fb,
 	&s5p_device_fimc0,
@@ -380,6 +382,7 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_rtc,
 	&s3c_device_wdt,
 	&s3c_device_nand,
+	&s5p_device_ehci,
 	&tiny210_device_dm9000,
 	&tiny210_leds,
 };
@@ -403,6 +406,8 @@ static void __init tiny210_machine_init(void)
 	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
 	s3c_set_platdata(&tiny210_fimc_md_platdata, sizeof(tiny210_fimc_md_platdata),
 			 &s5p_device_fimc_md);
+
+	s5p_ehci_set_platdata(&tiny210_ehci_pdata);
 
 	platform_add_devices(tiny210_devices, ARRAY_SIZE(tiny210_devices));
 }
