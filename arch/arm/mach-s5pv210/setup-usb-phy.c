@@ -23,20 +23,22 @@
 #define S5PV210_USB_PHY0_EN	(1 << 0)
 #define S5PV210_USB_PHY1_EN	(1 << 1)
 
-static int s5pv210_usb_otgphy_init(struct platform_device *pdev)
+static int s5pv210_usb_host_phy_is_on(void)
 {
-	struct clk *xusbxti;
-	u32 phyclk;
+	return (readl(S3C_PHYPWR) & S5P_PHYPWR_ANALOG_POWERDOWN_1) ? 0 : 1;
+}
 
-	writel(readl(S5PV210_USB_PHY_CON) | S5PV210_USB_PHY0_EN,
-			S5PV210_USB_PHY_CON);
+static void s5pv210_usb_phy_clkset(struct platform_device *pdev)
+{
+	struct clk *xusbxti_clk;
+	u32 phyclk;
 
 	/* set clock frequency for PLL */
 	phyclk = readl(S3C_PHYCLK) & ~S3C_PHYCLK_CLKSEL_MASK;
 
-	xusbxti = clk_get(&pdev->dev, "xusbxti");
-	if (xusbxti && !IS_ERR(xusbxti)) {
-		switch (clk_get_rate(xusbxti)) {
+	xusbxti_clk = clk_get(&pdev->dev, "xusbxti");
+	if (xusbxti_clk && !IS_ERR(xusbxti_clk)) {
+		switch (clk_get_rate(xusbxti_clk)) {
 		case 12 * MHZ:
 			phyclk |= S3C_PHYCLK_CLKSEL_12M;
 			break;
@@ -48,21 +50,33 @@ static int s5pv210_usb_otgphy_init(struct platform_device *pdev)
 			/* default reference clock */
 			break;
 		}
-		clk_put(xusbxti);
+		clk_put(xusbxti_clk);
 	}
 
-	/* TODO: select external clock/oscillator */
-	writel(phyclk | S3C_PHYCLK_CLK_FORCE, S3C_PHYCLK);
+	writel(phyclk, S3C_PHYCLK);
+}
+
+static int s5pv210_usb_otgphy_init(struct platform_device *pdev)
+{
+	dev_info(&pdev->dev, "usb-otg phy init\n");
+
+	writel(readl(S5PV210_USB_PHY_CON) | S5PV210_USB_PHY0_EN,
+			S5PV210_USB_PHY_CON);
+
+	s5pv210_usb_phy_clkset(pdev);
+
+	/* Force clock on */
+	writel(readl(S3C_PHYCLK) | S3C_PHYCLK_CLK_FORCE, S3C_PHYCLK);
 
 	/* set to normal OTG PHY */
-	writel((readl(S3C_PHYPWR) & ~S3C_PHYPWR_NORMAL_MASK), S3C_PHYPWR);
+	writel(readl(S3C_PHYPWR) & ~S5P_PHYPWR_NORMAL_MASK_0, S3C_PHYPWR);
 	mdelay(1);
 
 	/* reset OTG PHY and Link */
-	writel(S3C_RSTCON_PHY | S3C_RSTCON_HCLK | S3C_RSTCON_PHYCLK,
-			S3C_RSTCON);
+	writel(readl(S3C_RSTCON) | S5P_RSTCON_MSK_0, S3C_RSTCON);
+
 	udelay(20);	/* at-least 10uS */
-	writel(0, S3C_RSTCON);
+	writel(readl(S3C_RSTCON) & ~S5P_RSTCON_MSK_0, S3C_RSTCON);
 
 	return 0;
 }
@@ -78,10 +92,87 @@ static int s5pv210_usb_otgphy_exit(struct platform_device *pdev)
 	return 0;
 }
 
+static int s5pv210_usb_host_init(struct platform_device *pdev)
+{
+	struct clk *otg_clk;
+	int err;
+
+	dev_info(&pdev->dev, "usb-host phy init\n");
+
+	otg_clk = clk_get(&pdev->dev, "otg");
+	if (IS_ERR(otg_clk)) {
+		dev_err(&pdev->dev, "Failed to get otg clock\n");
+		return PTR_ERR(otg_clk);
+	}
+
+	err = clk_enable(otg_clk);
+	if (err) {
+		clk_put(otg_clk);
+		return err;
+	}
+
+	if (s5pv210_usb_host_phy_is_on())
+		return 0;
+
+	writel(readl(S5PV210_USB_PHY_CON) | S5PV210_USB_PHY1_EN,
+			S5PV210_USB_PHY_CON);
+
+	s5pv210_usb_phy_clkset(pdev);
+
+	/* Force clock on */
+	writel(readl(S3C_PHYCLK) | S5P_PHYCLK_CLK_FORCE_1, S3C_PHYCLK);
+
+	/* set to normal standard USB of PHY1 */
+	writel((readl(S3C_PHYPWR) & ~S5P_PHYPWR_NORMAL_MASK_1), S3C_PHYPWR);
+
+	/* reset phy */
+	writel(readl(S3C_RSTCON) | S5P_RSTCON_MSK_1, S3C_RSTCON);
+	udelay(20);
+	writel(readl(S3C_RSTCON) & ~S5P_RSTCON_MSK_1, S3C_RSTCON);
+
+	udelay(80);
+
+	clk_disable(otg_clk);
+	clk_put(otg_clk);
+
+	return 0;
+}
+
+static int s5pv210_usb_host_exit(struct platform_device *pdev)
+{
+	struct clk *otg_clk;
+	int err;
+
+
+	otg_clk = clk_get(&pdev->dev, "otg");
+	if (IS_ERR(otg_clk)) {
+		dev_err(&pdev->dev, "Failed to get otg clock\n");
+		return PTR_ERR(otg_clk);
+	}
+
+	err = clk_enable(otg_clk);
+	if (err) {
+		clk_put(otg_clk);
+		return err;
+	}
+
+	writel((readl(S3C_PHYPWR) | S5P_PHYPWR_ANALOG_POWERDOWN_1), S3C_PHYPWR);
+
+	writel(readl(S5PV210_USB_PHY_CON) & ~S5PV210_USB_PHY1_EN,
+			S5PV210_USB_PHY_CON);
+
+	clk_disable(otg_clk);
+	clk_put(otg_clk);
+
+	return 0;
+}
+
 int s5p_usb_phy_init(struct platform_device *pdev, int type)
 {
 	if (type == USB_PHY_TYPE_DEVICE)
 		return s5pv210_usb_otgphy_init(pdev);
+	else if (type == USB_PHY_TYPE_HOST)
+		return s5pv210_usb_host_init(pdev);
 
 	return -EINVAL;
 }
@@ -90,6 +181,8 @@ int s5p_usb_phy_exit(struct platform_device *pdev, int type)
 {
 	if (type == USB_PHY_TYPE_DEVICE)
 		return s5pv210_usb_otgphy_exit(pdev);
+	else if (type == USB_PHY_TYPE_HOST)
+		return s5pv210_usb_host_exit(pdev);
 
 	return -EINVAL;
 }
