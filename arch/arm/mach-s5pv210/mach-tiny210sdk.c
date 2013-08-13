@@ -21,6 +21,9 @@
 #include <linux/leds.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/platform_data/mtd-nand-s3c2410.h>
+#include <linux/platform_data/i2c-s3c2410.h>
+#include <linux/platform_data/usb-ehci-s5p.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -32,24 +35,22 @@
 
 #include <plat/cpu.h>
 #include <plat/clock.h>
+#include <plat/camport.h>
 #include <plat/devs.h>
-#include <plat/ehci.h>
 #include <plat/fb.h>
 #include <plat/gpio-cfg.h>
-#include <plat/iic.h>
 #include <plat/mfc.h>
-#include <plat/nand.h>
 #include <plat/pm.h>
-#include <plat/s5p-time.h>
-
-#include <plat/regs-fb-v4.h>
 #include <plat/regs-serial.h>
 #include <plat/regs-srom.h>
+#include <plat/samsung-time.h>
 
 #include <media/v4l2-mediabus.h>
 #include <media/s5p_fimc.h>
-#include <plat/camport.h>
+
 #include <sound/wm8960.h>
+
+#include <video/samsung_fimd.h>
 
 #include "common.h"
 
@@ -338,7 +339,7 @@ static void __init tiny210_map_io(void)
 	s5pv210_init_io(NULL, 0);
 	s3c24xx_init_clocks(24000000);
 	s3c24xx_init_uarts(tiny210_uartcfgs, ARRAY_SIZE(tiny210_uartcfgs));
-	s5p_set_timer_source(S5P_PWM3, S5P_PWM4);
+	samsung_set_timer_source(SAMSUNG_PWM3, SAMSUNG_PWM4);
 }
 
 static void __init tiny210_reserve(void)
@@ -379,7 +380,7 @@ static struct i2c_board_info __initdata i2c0_devices[] = {
 
 static struct platform_device tiny210_audio = {
 	.name	= "tiny210sdk-audio",
-	.id	= 0,
+	.id	= -1,
 };
 
 static void tiny210_set_audio_clk(void)
@@ -415,8 +416,6 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_wdt,
 	&s3c_device_nand,
 	&s5p_device_ehci,
-	&samsung_asoc_dma,
-	&samsung_asoc_idma,
 	&tiny210_device_dm9000,
 	&tiny210_leds,
 	&tiny210_audio,
@@ -455,10 +454,9 @@ MACHINE_START(TINY210SDK, "TINY210 SDK")
 	/* Maintainer: Mike Dyer <mike.dyer@md-soft.co.uk> */
 	.atag_offset	= 0x100,
 	.init_irq	= s5pv210_init_irq,
-	.handle_irq	= vic_handle_irq,
 	.map_io		= tiny210_map_io,
 	.init_machine	= tiny210_machine_init,
-	.timer		= &s5p_timer,
+	.init_time	= samsung_timer_init,
 	.restart	= s5pv210_restart,
 	.reserve	= tiny210_reserve
 MACHINE_END

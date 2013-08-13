@@ -38,9 +38,8 @@ static int tiny210_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	struct snd_soc_codec *codec = codec_dai->codec;
 
-	int ret = 0, i = 0;
+	int ret = 0;
 	int mclk = 24000000;
 	int pll = 0;
 	int adiv = 0;
@@ -138,7 +137,7 @@ static struct snd_soc_dai_link tiny210_dai = {
 	.stream_name = "WM8960",
 	.cpu_dai_name = "samsung-i2s.0",
 	.codec_dai_name = "wm8960-hifi",
-	.platform_name = "samsung-audio",
+	.platform_name = "samsung-i2s.0",
 	.codec_name = "wm8960.0-001a",
 	.init = tiny210_init,
 	.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF |
@@ -157,7 +156,7 @@ static struct snd_soc_card tiny210_card = {
 	.num_dapm_routes = ARRAY_SIZE(tiny210_audio_map),
 };
 
-static int __devinit tiny210_probe(struct platform_device *pdev)
+static int tiny210_probe(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = &tiny210_card;
 	int ret;
@@ -171,7 +170,7 @@ static int __devinit tiny210_probe(struct platform_device *pdev)
 	return ret;
 }
 
-static int __devexit tiny210_remove(struct platform_device *pdev)
+static int tiny210_remove(struct platform_device *pdev)
 {
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 	snd_soc_unregister_card(card);
@@ -184,7 +183,7 @@ static struct platform_driver tiny210_driver = {
 		.owner	= THIS_MODULE,
 	},
 	.probe		= tiny210_probe,
-	.remove		= __devexit_p(tiny210_remove),
+	.remove		= tiny210_remove,
 };
 
 module_platform_driver(tiny210_driver);
