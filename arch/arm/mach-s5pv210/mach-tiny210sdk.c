@@ -45,6 +45,7 @@
 #include <plat/regs-srom.h>
 #include <plat/samsung-time.h>
 
+#include <media/ov9650.h>
 #include <media/v4l2-mediabus.h>
 #include <media/s5p_fimc.h>
 
@@ -309,6 +310,20 @@ static void lcd_gpio_init(void)
 	gpio_free(S5PV210_GPD0(1));
 }
 
+static void __init tiny210_map_io(void)
+{
+	s5pv210_init_io(NULL, 0);
+	s3c24xx_init_clocks(24000000);
+	s3c24xx_init_uarts(tiny210_uartcfgs, ARRAY_SIZE(tiny210_uartcfgs));
+	samsung_set_timer_source(SAMSUNG_PWM3, SAMSUNG_PWM4);
+}
+
+static void __init tiny210_reserve(void)
+{
+	s5p_mfc_reserve_mem(0x3EC00000, 10 << 20, 0x3F600000, 10 << 20);
+}
+
+#ifdef CONFIG_VIDEO_TVP5150
 static void cam_a_init(void)
 {
 	int err;
@@ -334,20 +349,6 @@ static void cam_a_init(void)
 	gpio_free(S5PV210_GPJ2(6));
 }
 
-static void __init tiny210_map_io(void)
-{
-	s5pv210_init_io(NULL, 0);
-	s3c24xx_init_clocks(24000000);
-	s3c24xx_init_uarts(tiny210_uartcfgs, ARRAY_SIZE(tiny210_uartcfgs));
-	samsung_set_timer_source(SAMSUNG_PWM3, SAMSUNG_PWM4);
-}
-
-static void __init tiny210_reserve(void)
-{
-	s5p_mfc_reserve_mem(0x3EC00000, 10 << 20, 0x3F600000, 10 << 20);
-}
-
-#ifdef CONFIG_VIDEO_TVP5150
 static struct i2c_board_info tvp5150_board_info = {
 	I2C_BOARD_INFO("tvp5150", 0x5c),
 };
@@ -365,6 +366,38 @@ static struct s5p_fimc_isp_info tiny210_video_capture_devs[] = {
 
 static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
 	.isp_info	= tiny210_video_capture_devs,
+	.num_clients	= ARRAY_SIZE(tiny210_video_capture_devs),
+};
+#endif
+
+#ifdef CONFIG_VIDEO_OV9650
+static struct ov9650_platform_data ov9650_pdata =
+{
+	.mclk_frequency = 27000000UL,
+	.gpio_pwdn = -1,
+	.gpio_reset = S5PV210_GPJ3(1),
+};
+
+static struct i2c_board_info ov9650_board_info = 
+{
+	.type = "OV9650",
+	.addr = 0x30,
+	.platform_data = &ov9650_pdata,
+};
+
+static struct fimc_source_info tiny210_video_capture_devs[] = {
+	{
+		.mux_id			= 0,
+		.fimc_bus_type		= FIMC_BUS_TYPE_ITU_656,
+		.board_info		= &ov9650_board_info,
+		.i2c_bus_num		= 0,
+		.clk_frequency		= 27000000UL,
+		.flags			= 0
+	},
+};
+
+static struct s5p_platform_fimc tiny210_fimc_md_platdata __initdata = {
+	.source_info	= tiny210_video_capture_devs,
 	.num_clients	= ARRAY_SIZE(tiny210_video_capture_devs),
 };
 #endif
@@ -426,7 +459,6 @@ static void __init tiny210_machine_init(void)
 	s3c_pm_init();
 
 	lcd_gpio_init();
-	cam_a_init();
 
 	s3c_nand_set_platdata(&tiny210_nand_info);
 
@@ -438,6 +470,14 @@ static void __init tiny210_machine_init(void)
 	i2c_register_board_info(0, i2c0_devices, ARRAY_SIZE(i2c0_devices));
 
 #ifdef CONFIG_VIDEO_TVP5150
+	/* FIMC */
+	cam_a_init();
+	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
+	s3c_set_platdata(&tiny210_fimc_md_platdata, sizeof(tiny210_fimc_md_platdata),
+			 &s5p_device_fimc_md);
+#endif
+
+#ifdef CONFIG_VIDEO_OV9650
 	/* FIMC */
 	s5pv210_fimc_setup_gpio(S5P_CAMPORT_A);
 	s3c_set_platdata(&tiny210_fimc_md_platdata, sizeof(tiny210_fimc_md_platdata),
