@@ -824,10 +824,6 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool mplane, bool out)
 	int i, j = 0;
 
 	for (i = 0; i < ARRAY_SIZE(formats); ++i) {
-		if (mplane && formats[i].num_planes == 1)
-			continue;
-		else if (!mplane && formats[i].num_planes > 1)
-			continue;
 		if (out && formats[i].type != MFC_FMT_RAW)
 			continue;
 		else if (!out && formats[i].type != MFC_FMT_ENC)
@@ -844,22 +840,10 @@ static int vidioc_enum_fmt(struct v4l2_fmtdesc *f, bool mplane, bool out)
 	return -EINVAL;
 }
 
-static int vidioc_enum_fmt_vid_cap(struct file *file, void *pirv,
-				   struct v4l2_fmtdesc *f)
-{
-	return vidioc_enum_fmt(f, false, false);
-}
-
 static int vidioc_enum_fmt_vid_cap_mplane(struct file *file, void *pirv,
 					  struct v4l2_fmtdesc *f)
 {
 	return vidioc_enum_fmt(f, true, false);
-}
-
-static int vidioc_enum_fmt_vid_out(struct file *file, void *prov,
-				   struct v4l2_fmtdesc *f)
-{
-	return vidioc_enum_fmt(f, false, true);
 }
 
 static int vidioc_enum_fmt_vid_out_mplane(struct file *file, void *prov,
@@ -912,7 +896,7 @@ static int vidioc_try_fmt(struct file *file, void *priv, struct v4l2_format *f)
 	if (f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
 		fmt = find_format(f, MFC_FMT_ENC);
 		if (!fmt) {
-			mfc_err("failed to try output format\n");
+			mfc_err("failed to try capture format\n");
 			return -EINVAL;
 		}
 
@@ -923,6 +907,8 @@ static int vidioc_try_fmt(struct file *file, void *priv, struct v4l2_format *f)
 
 		pix_fmt_mp->plane_fmt[0].bytesperline =
 			pix_fmt_mp->plane_fmt[0].sizeimage;
+		pix_fmt_mp->num_planes = 1;
+
 	} else if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 		fmt = find_format(f, MFC_FMT_RAW);
 		if (!fmt) {
@@ -930,10 +916,8 @@ static int vidioc_try_fmt(struct file *file, void *priv, struct v4l2_format *f)
 			return -EINVAL;
 		}
 
-		if (fmt->num_planes != pix_fmt_mp->num_planes) {
-			mfc_err("failed to try output format\n");
-			return -EINVAL;
-		}
+		pix_fmt_mp->num_planes = fmt->num_planes;
+
 		v4l_bound_align_image(&pix_fmt_mp->width, 8, 1920, 1,
 			&pix_fmt_mp->height, 4, 1080, 1, 0);
 	} else {
@@ -1583,9 +1567,7 @@ static int vidioc_subscribe_event(struct v4l2_fh *fh,
 
 static const struct v4l2_ioctl_ops s5p_mfc_enc_ioctl_ops = {
 	.vidioc_querycap = vidioc_querycap,
-	.vidioc_enum_fmt_vid_cap = vidioc_enum_fmt_vid_cap,
 	.vidioc_enum_fmt_vid_cap_mplane = vidioc_enum_fmt_vid_cap_mplane,
-	.vidioc_enum_fmt_vid_out = vidioc_enum_fmt_vid_out,
 	.vidioc_enum_fmt_vid_out_mplane = vidioc_enum_fmt_vid_out_mplane,
 	.vidioc_g_fmt_vid_cap_mplane = vidioc_g_fmt,
 	.vidioc_g_fmt_vid_out_mplane = vidioc_g_fmt,
