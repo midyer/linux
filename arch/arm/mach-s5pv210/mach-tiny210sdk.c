@@ -387,12 +387,12 @@ static struct i2c_board_info ov9650_board_info =
 
 static struct fimc_source_info tiny210_video_capture_devs[] = {
 	{
-		.mux_id			= 0,
-		.fimc_bus_type		= FIMC_BUS_TYPE_ITU_656,
-		.board_info		= &ov9650_board_info,
+		.mux_id				= 0,
+		.sensor_bus_type	= FIMC_BUS_TYPE_ITU_656,
+		.board_info			= &ov9650_board_info,
 		.i2c_bus_num		= 0,
 		.clk_frequency		= 27000000UL,
-		.flags			= 0
+		.flags				= 0
 	},
 };
 
