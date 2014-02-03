@@ -78,7 +78,6 @@ static struct s3c2410_uartcfg tiny210_uartcfgs[] __initdata = {
 		.ulcon		= TINY210_ULCON_DEFAULT,
 		.ufcon		= TINY210_UFCON_DEFAULT,
 	} ,
-	/*
 	[1] = {
 		.hwport		= 1,
 		.flags		= 0,
@@ -86,6 +85,7 @@ static struct s3c2410_uartcfg tiny210_uartcfgs[] __initdata = {
 		.ulcon		= TINY210_ULCON_DEFAULT,
 		.ufcon		= TINY210_UFCON_DEFAULT,
 	},
+	/*
 	[2] = {
 		.hwport		= 2,
 		.flags		= 0,
