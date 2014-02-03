@@ -24,6 +24,7 @@
 #include <linux/platform_data/mtd-nand-s3c2410.h>
 #include <linux/platform_data/i2c-s3c2410.h>
 #include <linux/platform_data/usb-ehci-s5p.h>
+#include <linux/platform_data/s3c-hsotg.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -431,6 +432,7 @@ static void tiny210_set_audio_clk(void)
 }
 
 static struct s5p_ehci_platdata tiny210_ehci_pdata;
+static struct s3c_hsotg_plat tiny210_hsotg_pdata;
 
 static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_fb,
@@ -449,6 +451,7 @@ static struct platform_device *tiny210_devices[] __initdata = {
 	&s3c_device_wdt,
 	&s3c_device_nand,
 	&s5p_device_ehci,
+	&s3c_device_usb_hsotg,
 	&tiny210_device_dm9000,
 	&tiny210_leds,
 	&tiny210_audio,
@@ -484,6 +487,7 @@ static void __init tiny210_machine_init(void)
 			 &s5p_device_fimc_md);
 #endif
 	s5p_ehci_set_platdata(&tiny210_ehci_pdata);
+	s3c_hsotg_set_platdata(&tiny210_hsotg_pdata);
 
 	tiny210_set_audio_clk();
 
